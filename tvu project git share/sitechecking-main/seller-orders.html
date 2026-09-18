@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seller Orders | TVU Books & Materials</title>
+  <meta name="description" content="View and manage incoming book orders, customer delivery addresses, and cash collection details.">
+  <link rel="icon" type="image/png" href="assets/tvu-logo.png">
+
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+
+  <!-- Dynamic Header -->
+  <div id="site-header-container"></div>
+
+  <!-- Portal Banner -->
+  <section class="portal-header">
+    <div class="container">
+      <h1 class="portal-title heading-academic">Incoming Customer Orders</h1>
+      <p style="color:#cbd5e1; font-size:0.95rem;">
+        View student orders placed for your listed books, contact numbers for campus delivery, and COD collection details.
+      </p>
+
+      <div class="portal-tabs">
+        <a href="seller.html" class="tab-link">Seller Profile</a>
+        <a href="seller-books.html" class="tab-link">My Listed Books</a>
+        <a href="seller-orders.html" class="tab-link active">Seller Orders</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content -->
+  <main class="container" style="margin-top:2rem; flex:1; max-width:880px;">
+    <div class="section-header">
+      <div id="seller-orders-count" style="font-weight:700; color:var(--text-muted); font-size:0.95rem;">
+        Loading orders...
+      </div>
+    </div>
+
+    <div id="seller-orders-container">
+      <!-- Injected by seller-orders.js -->
+    </div>
+  </main>
+
+  <!-- Confirm Order Modal (Delivery Date Selection) -->
+  <div class="modal-backdrop" id="seller-confirm-order-modal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Confirm this Order</h3>
+        <button type="button" class="modal-close-btn" onclick="closeModal('seller-confirm-order-modal')">&times;</button>
+      </div>
+      <form id="seller-confirm-order-form">
+        <input type="hidden" id="confirm-order-doc-id">
+        <div class="modal-body">
+          <p style="color:var(--text-muted); font-size:0.925rem; margin-bottom:1.25rem;">
+            Please select the expected delivery date for this order.
+          </p>
+
+          <div style="background-color:var(--bg-subtle); border:1px solid var(--border-light); border-radius:var(--radius-md); padding:1rem; margin-bottom:1.25rem;">
+            <div style="font-size:0.75rem; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:0.04em;">Order Summary</div>
+            <div id="confirm-order-summary-title" style="font-weight:700; color:var(--primary); font-size:1rem; margin-top:0.25rem;">Book Title</div>
+            <div id="confirm-order-summary-buyer" style="font-size:0.85rem; color:var(--text-muted); margin-top:0.2rem;">Buyer: Student Name</div>
+            <div id="confirm-order-summary-location" style="font-size:0.85rem; color:var(--text-muted); margin-top:0.2rem;">Handover: Campus Location</div>
+          </div>
+
+          <div class="form-group">
+            <label for="confirm-delivery-date" class="form-label">
+              Expected Delivery Date <span class="required">*</span>
+            </label>
+            <input type="date" id="confirm-delivery-date" class="form-control" required style="font-size:0.95rem;">
+            <div class="form-help">Choose the date when you will hand over the book to the student on campus.</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('seller-confirm-order-modal')">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="confirm-order-submit-btn">Confirm Order</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <h3>TVU Books & Materials</h3>
+          <p style="max-width:380px; line-height:1.6;">Official textbook marketplace for Thiruvalluvar University students and faculty.</p>
+        </div>
+        <div class="footer-col">
+          <h4>Navigation</h4>
+          <ul class="footer-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="books.html">Browse Books</a></li>
+            <li><a href="download-syllabus.html">📥 Download Syllabus</a></li>
+            <li><a href="wishlist.html">My Wishlist</a></li>
+            <li><a href="orders.html">My Orders</a></li>
+            <li><a href="ai-support.html">🤖 AI Support</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Seller Hub</h4>
+          <ul class="footer-links">
+            <li><a href="seller.html">Become a Seller</a></li>
+            <li><a href="seller-books.html">List Books</a></li>
+            <li><a href="seller-orders.html">Incoming Orders</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2026 TVU Books & Materials • Thiruvalluvar University</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Firebase Compat Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <!-- EmailJS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
+  <!-- App Core Modules -->
+  <script src="js/firebase-config.js"></script>
+  <script src="js/notifications.js"></script>
+  <script src="js/email-service.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/seller-orders.js"></script>
+</body>
+</html>

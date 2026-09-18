@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seller Onboarding | TVU Books & Materials</title>
+  <meta name="description" content="Register as an academic book seller at Thiruvalluvar University to list books and notes for students.">
+  <link rel="icon" type="image/png" href="assets/tvu-logo.png">
+
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+
+  <!-- Dynamic Header -->
+  <div id="site-header-container"></div>
+
+  <!-- Portal Banner -->
+  <section class="portal-header">
+    <div class="container">
+      <h1 class="portal-title heading-academic">TVU Seller Portal</h1>
+      <p style="color:#cbd5e1; font-size:0.95rem;">
+        Register your seller profile to list academic textbooks and study guides for students across university departments.
+      </p>
+
+      <div class="portal-tabs">
+        <a href="seller.html" class="tab-link active">Seller Profile</a>
+        <a href="seller-books.html" class="tab-link">My Listed Books</a>
+        <a href="seller-orders.html" class="tab-link">Seller Orders</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content -->
+  <main class="container" style="flex:1;">
+    <div id="seller-content-container">
+      <div class="empty-state">
+        <div class="spinner" style="border-color: var(--primary); border-top-color: transparent; width: 36px; height: 36px; margin-bottom: 1rem;"></div>
+        <p style="font-weight:600; color:var(--text-muted);">Verifying seller credentials...</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <h3>TVU Books & Materials</h3>
+          <p style="max-width:380px; line-height:1.6;">Official textbook marketplace for Thiruvalluvar University students and faculty.</p>
+        </div>
+        <div class="footer-col">
+          <h4>Navigation</h4>
+          <ul class="footer-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="books.html">Browse Books</a></li>
+            <li><a href="download-syllabus.html">📥 Download Syllabus</a></li>
+            <li><a href="wishlist.html">My Wishlist</a></li>
+            <li><a href="orders.html">My Orders</a></li>
+            <li><a href="ai-support.html">🤖 AI Support</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Seller Hub</h4>
+          <ul class="footer-links">
+            <li><a href="seller.html">Become a Seller</a></li>
+            <li><a href="seller-books.html">List Books</a></li>
+            <li><a href="seller-orders.html">Incoming Orders</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2026 TVU Books & Materials • Thiruvalluvar University</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Firebase Compat Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <!-- App Core Modules -->
+  <script src="js/firebase-config.js"></script>
+  <script src="js/notifications.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/seller.js"></script>
+</body>
+</html>

@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NOVA AI Support 🦢 | TVU Books & Materials</title>
+  <meta name="description" content="Meet NOVA, your official AI assistant for TVU Books & Materials at Thiruvalluvar University. Get smart assistance in English, Tamil, and Tanglish for book searches, orders, wishlist, and seller portal.">
+  <link rel="icon" type="image/png" href="assets/tvu-logo.png">
+
+  <!-- Core Stylesheets -->
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/responsive.css">
+  <link rel="stylesheet" href="css/ai-support.css">
+</head>
+<body>
+
+  <!-- Dynamic Header Container -->
+  <div id="site-header-container"></div>
+
+  <!-- Page Breadcrumbs Banner -->
+  <div style="background-color:var(--bg-subtle); border-bottom:1px solid var(--border-light); padding:0.85rem 0;">
+    <div class="container" style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem; color:var(--text-muted); flex-wrap:wrap; gap:0.5rem;">
+      <div>
+        <a href="index.html">Home</a> / <span style="color:var(--text-main); font-weight:600;">🦢 AI Support (NOVA)</span>
+      </div>
+      <div style="display:flex; gap:0.5rem; align-items:center;">
+        <span class="ai-lang-pill" style="color:var(--text-main); background:var(--bg-surface); border-color:var(--border-light);">English</span>
+        <span class="ai-lang-pill" style="color:var(--text-main); background:var(--bg-surface); border-color:var(--border-light);">தமிழ்</span>
+        <span class="ai-lang-pill" style="color:var(--text-main); background:var(--bg-surface); border-color:var(--border-light);">Tanglish</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main AI Support Container -->
+  <main class="container ai-page-wrapper">
+    <div class="ai-chat-card" id="nova-chat-card">
+      
+      <!-- NOVA Header -->
+      <header class="ai-header">
+        <div class="ai-header-left">
+          <div class="ai-avatar" title="NOVA AI Assistant">🦢</div>
+          <div class="ai-title-wrap">
+            <div class="ai-title-row">
+              <span class="ai-name">NOVA</span>
+              <span class="ai-badge">Official AI Assistant</span>
+            </div>
+            <div class="ai-subtitle">
+              <span>Thiruvalluvar University Academic Marketplace</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="ai-header-actions">
+          <button class="ai-btn-ghost" onclick="clearChatHistory()" title="Clear conversation history">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="1 4 1 10 7 10"></polyline>
+              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+            </svg>
+            <span>Reset Chat</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Chat Messages Feed -->
+      <div class="ai-messages-container" id="ai-messages-feed" role="log" aria-live="polite">
+        <!-- Messages dynamically rendered here by js/ai-support.js -->
+      </div>
+
+      <!-- Quick Suggestion Chips Carousel -->
+      <div class="ai-chips-wrapper">
+        <span class="ai-chips-label">💡 Suggested Questions</span>
+        <div class="ai-chips-scroll">
+          <button class="ai-chip" onclick="handleChipClick('Java books iruka?')">
+            <span>📚</span> Java book iruka?
+          </button>
+          <button class="ai-chip" onclick="handleChipClick('Python books available ah?')">
+            <span>🐍</span> Python books available ah?
+          </button>
+          <button class="ai-chip" onclick="handleChipClick('BSc Computer Science books ena iruku?')">
+            <span>💻</span> BSc Computer Science books
+          </button>
+          <button class="ai-chip" onclick="handleChipClick('En order status ena?')">
+            <span>📦</span> En order status ena?
+          </button>
+          <button class="ai-chip" onclick="handleChipClick('En wishlist la ena books iruku?')">
+            <span>💖</span> En wishlist la ena books?
+          </button>
+          <button class="ai-chip" onclick="handleChipClick('How do I buy a book with Cash on Delivery?')">
+            <span>🛒</span> How do I buy a book?
+          </button>
+          <button class="ai-chip" onclick="handleChipClick('How do I sell a book on TVU?')">
+            <span>💼</span> How do I sell a book?
+          </button>
+          <button class="ai-chip" onclick="handleChipClick('En listed books ena?')">
+            <span>📋</span> En listed books ena?
+          </button>
+          <button class="ai-chip" onclick="handleChipClick('Stock epdi update panradhu?')">
+            <span>⚡</span> Stock update epdi?
+          </button>
+        </div>
+      </div>
+
+      <!-- User Chat Input Form -->
+      <form class="ai-input-wrapper" id="ai-chat-form" onsubmit="handleChatSubmit(event)">
+        <div class="ai-input-box">
+          <textarea 
+            id="ai-user-input" 
+            class="ai-textarea" 
+            placeholder="Ask NOVA in English, தமிழ், or Tanglish (e.g., 'Java book iruka?', 'How to sell?')..." 
+            rows="1" 
+            required
+            aria-label="Message NOVA AI Assistant"></textarea>
+          <div class="ai-input-hints">
+            <span>Enter to send • Shift+Enter for new line</span>
+            <span id="ai-auth-badge" style="display:inline-flex; align-items:center; gap:0.25rem;">
+              <span style="width:6px; height:6px; border-radius:50%; background:#94a3b8; display:inline-block;" id="auth-status-dot"></span>
+              <span id="auth-status-text">Guest Mode</span>
+            </span>
+          </div>
+        </div>
+        <button type="submit" class="ai-send-btn" id="ai-send-button" title="Send message">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </form>
+
+    </div>
+  </main>
+
+  <!-- Buy Now Checkout Modal (Cash on Delivery) -->
+  <div class="modal-backdrop" id="buy-now-modal" role="dialog" aria-modal="true">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Confirm Book Order</h3>
+        <button class="modal-close-btn" onclick="closeModal('buy-now-modal')" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="display:flex; gap:1rem; align-items:center; background-color:var(--bg-subtle); padding:0.85rem; border-radius:var(--radius-md); margin-bottom:1.25rem; border:1px solid var(--border-light);">
+          <img id="modal-book-img" src="" alt="Book Cover" style="width:60px; height:74px; object-fit:cover; border-radius:var(--radius-sm);">
+          <div>
+            <h4 id="modal-book-title" style="font-size:0.95rem; font-weight:700; color:var(--text-main); margin-bottom:0.2rem;"></h4>
+            <div id="modal-book-seller" style="font-size:0.775rem; color:var(--text-muted);"></div>
+            <div id="modal-book-price" style="font-size:1.1rem; font-weight:800; color:var(--primary); margin-top:0.2rem;"></div>
+          </div>
+        </div>
+
+        <form id="order-checkout-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="order-qty">Quantity <span class="required">*</span></label>
+              <input type="number" id="order-qty" class="form-control" value="1" min="1" max="10" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Payment Method</label>
+              <input type="text" class="form-control" value="Cash on Delivery (COD)" readonly style="background-color:var(--secondary-light); color:var(--secondary); font-weight:700;">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="order-cust-name">Full Name <span class="required">*</span></label>
+            <input type="text" id="order-cust-name" class="form-control" required placeholder="Enter your full name">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="order-cust-phone">Phone / WhatsApp Number <span class="required">*</span></label>
+            <input type="tel" id="order-cust-phone" class="form-control" required placeholder="e.g. +91 98765 43210">
+            <div class="form-help">Seller will contact this number for campus handover.</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="order-cust-address">Delivery / Handover Address <span class="required">*</span></label>
+            <textarea id="order-cust-address" class="form-control" rows="2" required placeholder="e.g. TVU Campus, Department Block / Hostel"></textarea>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-light); padding-top:1rem; margin-top:1rem;">
+            <div>
+              <span class="meta-label">Total Payable</span>
+              <div id="modal-order-total" style="font-size:1.4rem; font-weight:800; color:var(--primary);">₹0</div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-lg">Confirm Order (COD)</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Order Confirmed Celebration Modal -->
+  <div class="modal-backdrop" id="order-confirmed-modal" role="dialog" aria-modal="true">
+    <div class="modal-dialog">
+      <div class="success-modal-content">
+        <div class="success-checkmark-circle">✓</div>
+        <h2 style="font-size:1.6rem; font-weight:800; color:var(--primary); margin-bottom:0.35rem;">Order Confirmed!</h2>
+        <p style="color:var(--text-muted); font-size:0.95rem; margin-bottom:0.75rem;">Your order has been placed successfully.</p>
+        <span style="font-size:0.85rem; color:var(--text-muted);">Payment Method: <strong>Cash on Delivery</strong></span>
+        <div class="success-order-id" id="confirmed-order-id">#TVU-00000</div>
+        <div style="display:flex; gap:0.75rem; justify-content:center; flex-wrap:wrap;">
+          <a href="orders.html" class="btn btn-primary">View My Orders</a>
+          <button onclick="closeModal('order-confirmed-modal')" class="btn btn-outline">Back to Chat</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <h3>TVU Books & Materials</h3>
+          <p style="max-width:380px; line-height:1.6;">
+            The official student academic marketplace of Thiruvalluvar University. Promoting textbook reuse, affordable study materials, and seamless student exchange.
+          </p>
+        </div>
+        <div class="footer-col">
+          <h4>Navigation</h4>
+          <ul class="footer-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="books.html">All Books</a></li>
+            <li><a href="download-syllabus.html">📥 Download Syllabus</a></li>
+            <li><a href="wishlist.html">My Wishlist</a></li>
+            <li><a href="orders.html">My Orders</a></li>
+            <li><a href="ai-support.html">🤖 AI Support</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Seller Hub</h4>
+          <ul class="footer-links">
+            <li><a href="seller.html">Become a Seller</a></li>
+            <li><a href="seller-books.html">List Books</a></li>
+            <li><a href="seller-orders.html">Incoming Orders</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2026 TVU Books & Materials • Thiruvalluvar University • Built for Students & Faculty</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Firebase Compat Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <!-- EmailJS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
+  <!-- App Core Modules -->
+  <script src="js/firebase-config.js"></script>
+  <script src="js/notifications.js"></script>
+  <script src="js/email-service.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/ai-support.js"></script>
+</body>
+</html>

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Wishlist | TVU Books & Materials</title>
+  <meta name="description" content="View your saved university textbooks and study materials.">
+  <link rel="icon" type="image/png" href="assets/tvu-logo.png">
+
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+
+  <!-- Dynamic Header -->
+  <div id="site-header-container"></div>
+
+  <!-- Page Header -->
+  <div style="background-color:var(--bg-subtle); border-bottom:1px solid var(--border-light); padding:2rem 0;">
+    <div class="container">
+      <h1 class="heading-academic" style="font-size:1.85rem; color:var(--primary); margin-bottom:0.25rem;">
+        My Saved Books & Wishlist
+      </h1>
+      <p id="wishlist-count" style="color:var(--text-muted); font-size:0.95rem;">
+        Synchronized with your university Google account.
+      </p>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <main class="container" style="margin-top:2.5rem; flex:1;">
+    <div id="wishlist-grid" class="books-grid">
+      <!-- Injected by wishlist.js -->
+    </div>
+  </main>
+
+  <!-- Buy Now Checkout Modal (Cash on Delivery) -->
+  <div class="modal-backdrop" id="buy-now-modal" role="dialog" aria-modal="true">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Confirm Book Order</h3>
+        <button class="modal-close-btn" onclick="closeModal('buy-now-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="display:flex; gap:1rem; align-items:center; background-color:var(--bg-subtle); padding:0.85rem; border-radius:var(--radius-md); margin-bottom:1.25rem; border:1px solid var(--border-light);">
+          <img id="modal-book-img" src="" alt="Book Cover" style="width:60px; height:74px; object-fit:cover; border-radius:var(--radius-sm);">
+          <div>
+            <h4 id="modal-book-title" style="font-size:0.95rem; font-weight:700; color:var(--text-main); margin-bottom:0.2rem;"></h4>
+            <div id="modal-book-seller" style="font-size:0.775rem; color:var(--text-muted);"></div>
+            <div id="modal-book-price" style="font-size:1.1rem; font-weight:800; color:var(--primary); margin-top:0.2rem;"></div>
+          </div>
+        </div>
+
+        <form id="order-checkout-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="order-qty">Quantity <span class="required">*</span></label>
+              <input type="number" id="order-qty" class="form-control" value="1" min="1" max="10" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Payment Method</label>
+              <input type="text" class="form-control" value="Cash on Delivery (COD)" readonly style="background-color:var(--secondary-light); color:var(--secondary); font-weight:700;">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="order-cust-name">Full Name <span class="required">*</span></label>
+            <input type="text" id="order-cust-name" class="form-control" required placeholder="Enter your full name">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="order-cust-phone">Phone / WhatsApp Number <span class="required">*</span></label>
+            <input type="tel" id="order-cust-phone" class="form-control" required placeholder="e.g. +91 98765 43210">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="order-cust-address">Delivery / Handover Address <span class="required">*</span></label>
+            <textarea id="order-cust-address" class="form-control" rows="2" required placeholder="e.g. TVU Campus, Department Block / Hostel"></textarea>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-light); padding-top:1rem; margin-top:1rem;">
+            <div>
+              <span class="meta-label">Total Payable</span>
+              <div id="modal-order-total" style="font-size:1.4rem; font-weight:800; color:var(--primary);">₹0</div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-lg">Confirm Order (COD)</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Order Confirmed Modal -->
+  <div class="modal-backdrop" id="order-confirmed-modal" role="dialog" aria-modal="true">
+    <div class="modal-dialog">
+      <div class="success-modal-content">
+        <div class="success-checkmark-circle">✓</div>
+        <h2 style="font-size:1.6rem; font-weight:800; color:var(--primary); margin-bottom:0.35rem;">Order Confirmed!</h2>
+        <p style="color:var(--text-muted); font-size:0.95rem; margin-bottom:0.75rem;">Your order has been placed successfully.</p>
+        <span style="font-size:0.85rem; color:var(--text-muted);">Payment Method: <strong>Cash on Delivery</strong></span>
+        <div class="success-order-id" id="confirmed-order-id">#TVU-00000</div>
+        <div style="display:flex; gap:0.75rem; justify-content:center; flex-wrap:wrap;">
+          <a href="orders.html" class="btn btn-primary">View My Orders</a>
+          <button onclick="closeModal('order-confirmed-modal')" class="btn btn-outline">Continue Shopping</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <h3>TVU Books & Materials</h3>
+          <p style="max-width:380px; line-height:1.6;">Thiruvalluvar University student textbook exchange marketplace.</p>
+        </div>
+        <div class="footer-col">
+          <h4>Navigation</h4>
+          <ul class="footer-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="books.html">Browse Books</a></li>
+            <li><a href="download-syllabus.html">📥 Download Syllabus</a></li>
+            <li><a href="wishlist.html">My Wishlist</a></li>
+            <li><a href="orders.html">My Orders</a></li>
+            <li><a href="ai-support.html">🤖 AI Support</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Seller Hub</h4>
+          <ul class="footer-links">
+            <li><a href="seller.html">Become a Seller</a></li>
+            <li><a href="seller-books.html">List Books</a></li>
+            <li><a href="seller-orders.html">Incoming Orders</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2026 TVU Books & Materials • Thiruvalluvar University</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Firebase Compat Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <!-- EmailJS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
+  <!-- App Core Modules -->
+  <script src="js/firebase-config.js"></script>
+  <script src="js/notifications.js"></script>
+  <script src="js/email-service.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/wishlist.js"></script>
+</body>
+</html>

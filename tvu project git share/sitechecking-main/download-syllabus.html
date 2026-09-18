@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Download Syllabus & Question Papers | TVU Books & Materials</title>
+  <meta name="description" content="Download official Thiruvalluvar University department syllabus PDFs (all semesters complete regulation) and browse approved previous year semester exam question papers.">
+  <link rel="icon" type="image/png" href="assets/tvu-logo.png">
+
+  <!-- Core Stylesheets -->
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/responsive.css">
+  <link rel="stylesheet" href="css/syllabus.css">
+</head>
+<body>
+
+  <!-- Dynamic Header Container -->
+  <div id="site-header-container"></div>
+
+  <!-- Hero Section -->
+  <section class="syllabus-hero">
+    <div class="container">
+      <div class="hero-badge" style="background:rgba(255,255,255,0.15); color:#ffffff; border:1px solid rgba(255,255,255,0.25); margin-bottom:0.75rem;">
+        <span></span> Official Thiruvalluvar University Academic Repository
+      </div>
+      <h1 class="syllabus-hero-title">Academic Syllabus & Question Papers</h1>
+      <p class="syllabus-hero-subtitle">
+        Access complete department regulation syllabus PDFs and browse approved previous year university exam question papers for student reference.
+      </p>
+    </div>
+  </section>
+
+  <!-- Main Container -->
+  <main class="container" style="flex:1;">
+    
+    <!-- Resource Tab Switcher -->
+    <div class="resource-tabs-wrapper">
+      <div class="resource-tabs" role="tablist" aria-label="Academic Resource Tabs">
+        <button class="resource-tab-btn active" id="tab-btn-syllabus" role="tab" aria-selected="true" aria-controls="syllabus-tab" onclick="switchResourceTab('syllabus')">
+          <span>📚</span> Download Syllabus
+        </button>
+        <button class="resource-tab-btn" id="tab-btn-qp" role="tab" aria-selected="false" aria-controls="qp-tab" onclick="switchResourceTab('qp')">
+          <span>📝</span> Previous Year Question Papers
+        </button>
+      </div>
+    </div>
+
+    <!-- Student Contribution Trigger Bar -->
+    <div class="resource-admin-bar" id="resource-upload-trigger-bar">
+      <div class="resource-admin-text">
+        <strong>Contribute Question Papers:</strong> Have semester exam question papers to share with fellow students? Submit them for admin review.
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="openQuestionPaperSubmitModal()">
+        <span>📤</span> Submit Question Paper
+      </button>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- SECTION 1: DOWNLOAD SYLLABUS (Department-based Complete Regulation Only)  -->
+    <!-- ========================================================================= -->
+    <div class="resource-tab-content active" id="syllabus-tab" role="tabpanel" aria-labelledby="tab-btn-syllabus">
+      
+      <!-- Department Search Bar -->
+      <div class="resource-search-bar">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input 
+          type="text" 
+          id="syllabus-search-input" 
+          class="resource-search-input" 
+          placeholder="Search department syllabus (e.g. Computer Science, Mathematics, Commerce, Physics, English)..." 
+          aria-label="Search department syllabus"
+          oninput="handleSyllabusSearch(this.value)">
+        <span class="resource-counter" id="syllabus-counter-badge">Loading...</span>
+      </div>
+
+      <!-- Syllabus Cards Grid (Department-based complete syllabus PDF) -->
+      <div class="syllabus-grid" id="syllabus-grid-container">
+        <!-- Injected dynamically by js/syllabus.js -->
+        <div class="resource-empty-state" style="grid-column: 1 / -1;">
+          <div class="spinner" style="border-color: var(--primary); border-top-color: transparent; width: 36px; height: 36px; margin: 0 auto 1rem;"></div>
+          <p style="font-weight:600; color:var(--text-muted);">Fetching university department syllabuses...</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- SECTION 2: PREVIOUS YEAR QUESTION PAPERS (Approved Records Only)           -->
+    <!-- ========================================================================= -->
+    <div class="resource-tab-content" id="qp-tab" role="tabpanel" aria-labelledby="tab-btn-qp">
+      
+      <!-- Dynamic Department Filter Pills (Generated ONLY from approved uploaded data) -->
+      <div class="dept-filter-scroll-wrapper">
+        <div class="dept-filter-label">
+          <span>🏛️</span> Available Departments (with approved papers):
+        </div>
+        <div class="dept-filter-pills" id="qp-dept-pills-container">
+          <!-- Injected dynamically by js/syllabus.js based on actual approved data -->
+        </div>
+      </div>
+
+      <!-- Question Papers Search & Filter Bar -->
+      <div class="resource-search-bar">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input 
+          type="text" 
+          id="qp-search-input" 
+          class="resource-search-input" 
+          placeholder="Filter by subject name, paper code, or exam year (e.g. Data Structures, 2024)..." 
+          aria-label="Filter question papers"
+          oninput="handleQpSearch(this.value)">
+        <span class="resource-counter" id="qp-counter-badge">Loading...</span>
+      </div>
+
+      <!-- Question Papers Grid -->
+      <div class="qp-grid" id="qp-grid-container">
+        <!-- Injected dynamically by js/syllabus.js -->
+        <div class="resource-empty-state" style="grid-column: 1 / -1;">
+          <div class="spinner" style="border-color: var(--secondary); border-top-color: transparent; width: 36px; height: 36px; margin: 0 auto 1rem;"></div>
+          <p style="font-weight:600; color:var(--text-muted);">Loading approved question papers...</p>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- Student / User Question Paper Submission Modal (Subject to Admin Review)  -->
+  <!-- ========================================================================= -->
+  <div class="modal-backdrop" id="qp-submit-modal" role="dialog" aria-modal="true" aria-labelledby="qp-submit-title">
+    <div class="modal-dialog" style="max-width:540px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="qp-submit-title">Submit Question Paper for Review</h3>
+        <button class="modal-close-btn" onclick="closeModal('qp-submit-modal')" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:0.875rem; color:var(--text-muted); margin-bottom:1.25rem;">
+          Submitted question papers are reviewed by the academic administrator before appearing publicly.
+        </p>
+
+        <form id="qp-submit-form" onsubmit="handleQuestionPaperSubmit(event)">
+          
+          <div class="form-group">
+            <label class="form-label" for="submit-dept">Department Name <span class="required">*</span></label>
+            <input type="text" id="submit-dept" class="form-control" placeholder="e.g. B.Sc Computer Science, B.Com General, M.Sc Mathematics" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="submit-subject-name">Subject Name <span class="required">*</span></label>
+            <input type="text" id="submit-subject-name" class="form-control" placeholder="e.g. Java Programming, Data Structures, Corporate Accounting" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="submit-exam-year">Exam Year / Session <span class="required">*</span></label>
+              <input type="text" id="submit-exam-year" class="form-control" placeholder="e.g. Nov 2024 or 2023" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="submit-subject-code">Subject Code</label>
+              <input type="text" id="submit-subject-code" class="form-control" placeholder="e.g. CS302 / BC401">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="submit-pdf-url">PDF Document URL <span class="required">*</span></label>
+            <input type="url" id="submit-pdf-url" class="form-control" placeholder="https://.../question_paper.pdf" required>
+            <div class="form-help">Enter direct HTTPS link to the question paper PDF (e.g. Cloudinary or drive link).</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="submit-notes">Additional Notes (Optional)</label>
+            <textarea id="submit-notes" class="form-control" rows="2" placeholder="e.g. University Semester 4 Main Exam Paper"></textarea>
+          </div>
+
+          <div style="display:flex; justify-content:flex-end; gap:0.75rem; border-top:1px solid var(--border-light); padding-top:1rem; margin-top:1rem;">
+            <button type="button" class="btn btn-outline" onclick="closeModal('qp-submit-modal')">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="submit-qp-btn">
+              <span>Submit for Admin Review</span>
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <h3>TVU Books & Materials</h3>
+          <p style="max-width:380px; line-height:1.6;">
+            The official student academic marketplace of Thiruvalluvar University. Promoting textbook reuse, affordable study materials, syllabus downloads, and seamless student exchange.
+          </p>
+        </div>
+        <div class="footer-col">
+          <h4>Navigation</h4>
+          <ul class="footer-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="books.html">All Books</a></li>
+            <li><a href="download-syllabus.html">📥 Download Syllabus</a></li>
+            <li><a href="wishlist.html">My Wishlist</a></li>
+            <li><a href="orders.html">My Orders</a></li>
+            <li><a href="ai-support.html">🤖 AI Support</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Seller Hub</h4>
+          <ul class="footer-links">
+            <li><a href="seller.html">Become a Seller</a></li>
+            <li><a href="seller-books.html">List Books</a></li>
+            <li><a href="seller-orders.html">Incoming Orders</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2026 TVU Books & Materials • Thiruvalluvar University • Built for Students & Faculty</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Firebase Compat Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <!-- App Core Modules -->
+  <script src="js/firebase-config.js"></script>
+  <script src="js/notifications.js"></script>
+  <script src="js/cloudinary-service.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/syllabus.js"></script>
+</body>
+</html>
