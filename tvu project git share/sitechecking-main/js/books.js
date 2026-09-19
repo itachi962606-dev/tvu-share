@@ -117,14 +117,12 @@ function applyFiltersAndRender() {
     return matchesCat && matchesSearch && matchesStock;
   });
 
-  // Sorting
   if (selectedSort === 'price-low') {
     list.sort((a, b) => (a.discountedPrice || a.originalPrice) - (b.discountedPrice || b.originalPrice));
   } else if (selectedSort === 'price-high') {
     list.sort((a, b) => (b.discountedPrice || b.originalPrice) - (a.discountedPrice || a.originalPrice));
   }
 
-  // Counter
   const countEl = document.getElementById('catalog-count');
   if (countEl) {
     countEl.textContent = `Showing ${list.length} book${list.length === 1 ? '' : 's'}`;
@@ -209,7 +207,8 @@ async function toggleWishlist(bookId, event) {
   if (event) event.stopPropagation();
 
   if (!auth.currentUser) {
-    showToast("Please sign in with Google to add books to your wishlist.", "warning");
+    showToast("Please sign in to add books to your wishlist.", "warning");
+    openGlobalAuthModal('signup');
     return;
   }
 
@@ -248,7 +247,8 @@ async function toggleWishlist(bookId, event) {
 
 function initiateBuyNow(bookId) {
   if (!auth.currentUser) {
-    showToast("Please sign in with Google to place an order.", "warning");
+    showToast("Please sign in to place an order.", "warning");
+    openGlobalAuthModal('signup');
     return;
   }
 
@@ -376,11 +376,6 @@ function setupOrderForm() {
       }
     });
   }
-}
-
-function escapeHTML(str) {
-  if (!str) return '';
-  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 window.loadBooks = loadBooks;

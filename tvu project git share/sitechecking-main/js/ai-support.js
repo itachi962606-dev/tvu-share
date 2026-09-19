@@ -4,7 +4,6 @@
  * rich book/order mini-cards, and instant COD checkout modal integration.
  */
 
-// Configuration: Relative API Endpoint for Vercel Serverless Function
 const API_ENDPOINT = '/api/chat';
 
 let conversationHistory = [];
@@ -24,13 +23,11 @@ I can help you with:
 
 Feel free to ask me in **English**, **தமிழ்**, or **Tanglish**!`;
 
-// Initialize Page
 document.addEventListener('DOMContentLoaded', () => {
   initChatUI();
   setupOrderCheckoutForm();
 });
 
-// Sync Auth State
 window.addEventListener('authStateChanged', (e) => {
   const user = e.detail.user;
   updateAuthStatusUI(user);
@@ -56,7 +53,6 @@ function initChatUI() {
   const feed = document.getElementById('ai-messages-feed');
   const textarea = document.getElementById('ai-user-input');
 
-  // Load from session storage or show welcome
   const saved = sessionStorage.getItem('tvu_nova_chat_history');
   if (saved) {
     try {
@@ -70,7 +66,6 @@ function initChatUI() {
     showWelcomeMessage();
   }
 
-  // Textarea auto-resize & key bindings
   if (textarea) {
     textarea.addEventListener('input', () => {
       textarea.style.height = 'auto';
@@ -119,8 +114,8 @@ function createMessageElement(msg, index) {
   const avatar = document.createElement('div');
   avatar.className = 'msg-avatar';
   if (msg.role === 'user') {
-    if (auth && auth.currentUser && auth.currentUser.photoURL) {
-      avatar.innerHTML = `<img src="${auth.currentUser.photoURL}" alt="User" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+    if (window.auth && window.auth.currentUser && window.auth.currentUser.photoURL) {
+      avatar.innerHTML = `<img src="${window.auth.currentUser.photoURL}" alt="User" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
     } else {
       avatar.textContent = '👤';
     }
@@ -137,14 +132,11 @@ function createMessageElement(msg, index) {
   if (msg.role === 'assistant') {
     bubble.innerHTML = formatMarkdown(msg.content);
 
-    // If message contains structured books or orders data
     if (msg.books && Array.isArray(msg.books) && msg.books.length > 0) {
-      const booksGrid = renderMiniBooksGrid(msg.books);
-      bubble.appendChild(booksGrid);
+      bubble.appendChild(renderMiniBooksGrid(msg.books));
     }
     if (msg.orders && Array.isArray(msg.orders) && msg.orders.length > 0) {
-      const ordersContainer = renderMiniOrdersList(msg.orders);
-      bubble.appendChild(ordersContainer);
+      bubble.appendChild(renderMiniOrdersList(msg.orders));
     }
   } else {
     bubble.textContent = msg.content;
@@ -190,8 +182,7 @@ function renderMiniBooksGrid(books) {
         </div>
       </div>
       <div class="ai-book-price-row">
-        <span class="ai-book-price">₹${disc}</span>
-        ${orig > disc ? `<span class="ai-book-orig-price">₹${orig}</span>` : ''}
+        <span class="ai-book-price">₹${disc}</span>${orig > disc ? `<span class="ai-book-orig-price">₹${orig}</span>` : ''}
         ${discountPct > 0 ? `<span class="ai-book-discount-tag">${discountPct}% OFF</span>` : ''}
       </div>
       <div class="ai-book-actions">
@@ -224,7 +215,7 @@ function renderMiniOrdersList(orders) {
         <span class="ai-order-status ${statusClass}">${escapeHTML(o.orderStatus || 'Confirmed')}</span>
       </div>
       <div class="ai-order-details">
-        <strong>${escapeHTML(o.bookTitle || 'Academic Book')}</strong> (Qty: ${o.quantity || 1})
+        <strong>${escapeHTML(o.bookTitle || 'Academic Book')}</strong> (Qty:${o.quantity || 1})
       </div>
       <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.25rem;">
         <span class="ai-order-total">Total: ₹${o.totalAmount || o.discountedPrice || 0}</span>
@@ -237,7 +228,6 @@ function renderMiniOrdersList(orders) {
   return container;
 }
 
-// Quick Prompt Chip handler
 function handleChipClick(promptText) {
   const textarea = document.getElementById('ai-user-input');
   if (textarea) {
@@ -247,14 +237,12 @@ function handleChipClick(promptText) {
   }
 }
 
-// Clear Chat History
 function clearChatHistory() {
   sessionStorage.removeItem('tvu_nova_chat_history');
   showWelcomeMessage();
-  showToast("Chat reset successfully", "info");
+  if (typeof showToast === 'function') showToast("Chat reset successfully", "info");
 }
 
-// Form Submit Handler
 async function handleChatSubmit(e) {
   if (e) e.preventDefault();
   if (isAwaitingResponse) return;
@@ -266,7 +254,6 @@ async function handleChatSubmit(e) {
   const userText = textarea.value.trim();
   if (!userText) return;
 
-  // Add User Message
   const userMsg = {
     role: 'user',
     content: userText,
@@ -276,43 +263,38 @@ async function handleChatSubmit(e) {
   conversationHistory.push(userMsg);
   saveHistory();
 
-  // Reset Input
   textarea.value = '';
   textarea.style.height = 'auto';
   textarea.focus();
 
-  // Append user bubble to UI
   const feed = document.getElementById('ai-messages-feed');
   feed.appendChild(createMessageElement(userMsg, conversationHistory.length - 1));
   scrollToBottom();
 
-  // Show Typing Indicator
   showTypingIndicator();
   isAwaitingResponse = true;
   if (sendBtn) sendBtn.disabled = true;
 
   try {
-    // Get Firebase ID Token if user is authenticated
     let idToken = null;
-    if (auth && auth.currentUser) {
+    if (window.auth && window.auth.currentUser) {
       try {
-        idToken = await auth.currentUser.getIdToken();
+        idToken = await window.auth.currentUser.getIdToken();
       } catch (tokErr) {
         console.warn("Could not retrieve auth token:", tokErr);
       }
     }
 
-    // Prepare payload for secure AI backend
     const payload = {
       message: userText,
       history: conversationHistory.slice(-10).map(m => ({
         role: m.role === 'assistant' ? 'assistant' : 'user',
         content: m.content
       })),
-      userInfo: auth && auth.currentUser ? {
-        uid: auth.currentUser.uid,
-        email: auth.currentUser.email,
-        displayName: auth.currentUser.displayName
+      userInfo: window.auth && window.auth.currentUser ? {
+        uid: window.auth.currentUser.uid,
+        email: window.auth.currentUser.email,
+        displayName: window.auth.currentUser.displayName
       } : null
     };
 
@@ -355,7 +337,6 @@ async function handleChatSubmit(e) {
     lastFailedMessage = null;
 
   } catch (error) {
-    console.error("NOVA Chat Error:", error);
     removeTypingIndicator();
     showErrorMessage(error.message || "Failed to reach NOVA AI service.", userText);
   } finally {
@@ -419,7 +400,6 @@ function retryLastMessage() {
   if (lastFailedMessage) {
     const textarea = document.getElementById('ai-user-input');
     if (textarea) textarea.value = lastFailedMessage;
-    // Remove the error banner
     const feed = document.getElementById('ai-messages-feed');
     if (feed && feed.lastElementChild) feed.lastElementChild.remove();
     handleChatSubmit();
@@ -441,22 +421,22 @@ function scrollToBottom() {
   }
 }
 
-// Markdown Formatter Helper
+// Markdown Formatter
 function formatMarkdown(text) {
   if (!text) return '';
 
   let html = escapeHTML(text);
 
-  // Bold **text**
+  // Bold
   html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
   
-  // Italic *text*
-  html = html.replace(/\*([^\*]+)\*/g, '<em>$1</em>');
+  // Italic (corrected regex without syntax errors)
+  html = html.replace(/_([^_]+)_/g, '<em>$1</em>');
+  html = html.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
   
-  // Inline Code `code`
+  // Inline Code
   html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
 
-  // Bullet items: lines starting with * or -
   const lines = html.split('\n');
   let inList = false;
   let result = [];
@@ -487,18 +467,17 @@ function formatMarkdown(text) {
   return result.join('');
 }
 
-// Buy Modal from Chat
 async function openChatBookOrderModal(bookId) {
-  if (!window.isFirebaseConfigured()) {
-    showToast("Firebase is not configured.", "warning");
+  if (!window.isFirebaseConfigured || !window.isFirebaseConfigured()) {
+    if (typeof showToast === 'function') showToast("Firebase is not configured.", "warning");
     return;
   }
 
   try {
-    showToast("Preparing order...", "info", 1000);
-    const doc = await db.collection('books').doc(bookId).get();
+    if (typeof showToast === 'function') showToast("Preparing order...", "info", 1000);
+    const doc = await window.db.collection('books').doc(bookId).get();
     if (!doc.exists) {
-      showToast("Book not found or unavailable.", "error");
+      if (typeof showToast === 'function') showToast("Book not found or unavailable.", "error");
       return;
     }
 
@@ -519,14 +498,13 @@ async function openChatBookOrderModal(bookId) {
     if (modalBookPrice) modalBookPrice.textContent = `₹${price}`;
     if (modalOrderTotal) modalOrderTotal.textContent = `₹${price}`;
 
-    if (auth && auth.currentUser && custNameInput) {
-      custNameInput.value = auth.currentUser.displayName || '';
+    if (window.auth && window.auth.currentUser && custNameInput) {
+      custNameInput.value = window.auth.currentUser.displayName || '';
     }
 
-    openModal('buy-now-modal');
+    if (typeof openModal === 'function') openModal('buy-now-modal');
   } catch (err) {
-    console.error("Order modal error:", err);
-    showToast("Failed to open order form: " + err.message, "error");
+    if (typeof showToast === 'function') showToast("Failed to open order form: " + err.message, "error");
   }
 }
 
@@ -548,9 +526,9 @@ function setupOrderCheckoutForm() {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      if (!auth.currentUser) {
-        showToast("Please sign in with Google to confirm your book order.", "warning");
-        loginWithGoogle();
+      if (!window.auth || !window.auth.currentUser) {
+        if (typeof showToast === 'function') showToast("Please sign in to confirm your book order.", "warning");
+        if (typeof openGlobalAuthModal === 'function') openGlobalAuthModal('signup');
         return;
       }
 
@@ -566,9 +544,9 @@ function setupOrderCheckoutForm() {
       const orderId = 'TVU-' + Math.floor(100000 + Math.random() * 900000);
       const orderPayload = {
         orderId,
-        customerId: auth.currentUser.uid,
+        customerId: window.auth.currentUser.uid,
         customerName: name,
-        customerEmail: auth.currentUser.email || '',
+        customerEmail: window.auth.currentUser.email || '',
         customerPhone: phone,
         customerAddress: address,
         sellerId: selectedBookForOrder.sellerId || '',
@@ -587,13 +565,12 @@ function setupOrderCheckoutForm() {
       };
 
       try {
-        showToast("Placing your Cash on Delivery order...", "info", 2000);
-        await db.collection('orders').doc(orderId).set(orderPayload);
+        if (typeof showToast === 'function') showToast("Placing your Cash on Delivery order...", "info", 2000);
+        await window.db.collection('orders').doc(orderId).set(orderPayload);
 
-        // Update book stock
         try {
           const newStock = Math.max(0, (Number(selectedBookForOrder.stock) || 1) - qty);
-          await db.collection('books').doc(selectedBookForOrder.id).update({
+          await window.db.collection('books').doc(selectedBookForOrder.id).update({
             stock: newStock,
             availability: newStock > 0 ? 'In Stock' : 'Out of Stock',
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -602,7 +579,6 @@ function setupOrderCheckoutForm() {
           console.warn("Stock update warning:", stkErr);
         }
 
-        // Send EmailJS alert
         if (typeof sendSellerOrderEmail === 'function') {
           sendSellerOrderEmail({
             sellerEmail: orderPayload.sellerEmail,
@@ -617,20 +593,29 @@ function setupOrderCheckoutForm() {
           }).catch(console.warn);
         }
 
-        closeModal('buy-now-modal');
-        document.getElementById('confirmed-order-id').textContent = '#' + orderId;
-        openModal('order-confirmed-modal');
-        triggerConfettiCelebration();
+        if (typeof closeModal === 'function') closeModal('buy-now-modal');
+        const confEl = document.getElementById('confirmed-order-id');
+        if (confEl) confEl.textContent = '#' + orderId;
+        if (typeof openModal === 'function') openModal('order-confirmed-modal');
+        if (typeof triggerConfettiCelebration === 'function') triggerConfettiCelebration();
 
       } catch (err) {
-        console.error("Order placement failed:", err);
-        showToast("Order placement failed: " + err.message, "error");
+        if (typeof showToast === 'function') showToast("Order placement failed: " + err.message, "error");
       }
     });
   }
 }
 
-// Export to window
+function escapeHTML(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 window.handleChatSubmit = handleChatSubmit;
 window.handleChipClick = handleChipClick;
 window.clearChatHistory = clearChatHistory;

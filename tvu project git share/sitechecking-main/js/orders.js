@@ -29,7 +29,7 @@ function showLoggedOutState() {
         <div class="empty-state-icon">📦</div>
         <h3 class="empty-state-title">Sign in to View Your Orders</h3>
         <p class="empty-state-text">Track your confirmed book purchases and delivery details.</p>
-        <button onclick="loginWithGoogle()" class="btn btn-primary">Continue with Google</button>
+        <button onclick="openGlobalAuthModal('signup')" class="btn btn-primary">Sign in / Register</button>
       </div>
     `;
   }
@@ -135,9 +135,4 @@ function renderCustomerOrders() {
       </div>
     `;
   }).join('');
-}
-
-function escapeHTML(str) {
-  if (!str) return '';
-  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }

@@ -29,8 +29,8 @@ function showLoggedOutState() {
       <div class="empty-state" style="grid-column: 1 / -1;">
         <div class="empty-state-icon">🔒</div>
         <h3 class="empty-state-title">Sign in to View Your Wishlist</h3>
-        <p class="empty-state-text">Your personal saved books are synchronized across devices with your Google account.</p>
-        <button onclick="loginWithGoogle()" class="btn btn-primary">Continue with Google</button>
+        <p class="empty-state-text">Your personal saved books are synchronized across devices with your university account.</p>
+        <button onclick="openGlobalAuthModal('signup')" class="btn btn-primary">Sign in / Register</button>
       </div>
     `;
   }
@@ -274,11 +274,6 @@ function setupOrderForm() {
       }
     });
   }
-}
-
-function escapeHTML(str) {
-  if (!str) return '';
-  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 window.removeFromWishlist = removeFromWishlist;

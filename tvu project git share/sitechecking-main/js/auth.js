@@ -1,290 +1,854 @@
 /**
- * TVU Books & Materials - Authentication & Navigation Header Management
- * Handles: Google Sign-In, Customer Profile Sync, Header Dynamic Rendering, and Route Protection
+ * TVU Books & Materials - Universal Dual Username / Email Engine
+ * Seamlessly handles both Username and Email in Sign-up & Login
  */
 
 let currentAuthUser = null;
 let currentCustomerData = null;
 let currentSellerData = null;
+let globalAuthMode = 'signup';
+let pendingGoogleUser = null;
+let pendingSignupDetails = null;
+let isCheckingSignupExisting = false;
 
 // Initialize Auth Observer
 function initAuth() {
-  if (typeof auth === 'undefined') {
-    console.error("Firebase Auth instance not found.");
-    return;
-  }
+  renderUniversalHeader();
+
+  if (typeof auth === 'undefined') return;
 
   auth.onAuthStateChanged(async (user) => {
+    if (isCheckingSignupExisting) return;
+
+    const alertBox = document.getElementById('auth-existing-alert');
+    if (alertBox && alertBox.style.display === 'block') {
+      return;
+    }
+
     currentAuthUser = user;
+
     if (user) {
-      // Sync Customer Profile in Firestore
       try {
-        await syncCustomerProfile(user);
-        // Check if user is also registered as a seller
-        await fetchSellerProfile(user.uid);
+        if (typeof db !== 'undefined') {
+          const custDoc = await db.collection('customers').doc(user.uid).get();
+          if (!custDoc.exists || !custDoc.data().username) {
+            openProfileSetupModal(user);
+            return;
+          }
+          currentCustomerData = custDoc.data();
+          await syncCustomerProfile(user);
+          await fetchSellerProfile(user.uid);
+        }
       } catch (err) {
-        console.error("Profile sync error:", err);
+        console.error("Profile check error:", err);
       }
     } else {
       currentCustomerData = null;
       currentSellerData = null;
     }
 
-    // Render navigation header based on auth state
-    renderHeader();
-
-    // Trigger custom event for other page scripts
+    renderUniversalHeader();
     window.dispatchEvent(new CustomEvent('authStateChanged', { detail: { user } }));
   });
 }
 
-/**
- * Sync customer profile in customers/{uid}
- * Every Google user is initially a customer.
- */
-async function syncCustomerProfile(user) {
-  if (!db) return;
-  const customerRef = db.collection('customers').doc(user.uid);
-  const doc = await customerRef.get();
-
-  const now = firebase.firestore.FieldValue.serverTimestamp();
-  const isNewUser = !doc.exists;
-  const existingData = doc.exists ? doc.data() : null;
-
-  const customerPayload = {
-    uid: user.uid,
-    name: user.displayName || 'University Member',
-    email: user.email || '',
-    profileImage: user.photoURL || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
-    role: existingData && existingData.role ? existingData.role : 'customer',
-    updatedAt: now
-  };
-
-  if (isNewUser) {
-    customerPayload.createdAt = now;
-    customerPayload.welcomeEmailSent = false;
-    await customerRef.set(customerPayload);
-
-    // Send Welcome Email ONLY on first-time user registration
-    if (user.email && typeof sendWelcomeEmail === 'function') {
-      sendWelcomeEmail({
-        name: user.displayName || 'Student',
-        email: user.email,
-        uid: user.uid
-      }).then((res) => {
-        if (res && res.success) {
-          customerRef.update({ welcomeEmailSent: true }).catch(console.warn);
-        }
-      }).catch((err) => {
-        console.warn("Welcome email dispatch notice (non-fatal):", err);
-      });
-    }
-  } else {
-    await customerRef.update(customerPayload);
-  }
-
-  const updatedDoc = await customerRef.get();
-  currentCustomerData = updatedDoc.data();
-}
-
-/**
- * Check if user has a seller profile in sellers/{uid}
- */
-async function fetchSellerProfile(uid) {
-  if (!db) return null;
-  try {
-    const sellerDoc = await db.collection('sellers').doc(uid).get();
-    if (sellerDoc.exists) {
-      currentSellerData = sellerDoc.data();
-      return currentSellerData;
-    }
-    currentSellerData = null;
-    return null;
-  } catch (err) {
-    console.error("Error fetching seller status:", err);
-    return null;
-  }
-}
-
-/**
- * Trigger Google Login Popup
- */
-async function loginWithGoogle() {
-  if (!window.isFirebaseConfigured()) {
-    showToast("Please update js/firebase-config.js with your live Firebase keys.", "warning", 5000);
-    return;
-  }
-
-  try {
-    showToast("Connecting with Google...", "info", 2000);
-    const result = await auth.signInWithPopup(googleProvider);
-    showToast(`Welcome back, ${result.user.displayName || 'Student'}!`, "success");
-    return result.user;
-  } catch (error) {
-    console.error("Google sign in failed:", error);
-    if (error.code !== 'auth/popup-closed-by-user') {
-      showToast(`Login failed: ${error.message}`, "error");
-    }
-  }
-}
-
-/**
- * Trigger Logout
- */
-async function logoutUser() {
-  try {
-    await auth.signOut();
-    showToast("Signed out successfully", "success");
-    setTimeout(() => {
-      window.location.href = "index.html";
-    }, 400);
-  } catch (error) {
-    console.error("Logout failed:", error);
-    showToast("Failed to sign out. Please try again.", "error");
-  }
-}
-
-/**
- * Render Header Dynamically across all pages
- */
-function renderHeader() {
+// Render Universal Header with Name & @username
+function renderUniversalHeader() {
   const headerContainer = document.getElementById('site-header-container');
   if (!headerContainer) return;
 
-  const currentPath = window.location.pathname.split('/').pop() || 'index.html';
-
   const user = currentAuthUser;
-  const isSeller = !!currentSellerData;
+  const cust = currentCustomerData;
+  const currentPath = window.location.pathname.split('/').pop() || 'index.html';
+  const isHome = currentPath === 'index.html' || currentPath === '';
 
-  const html = `
-    <header class="site-header">
-      <div class="container header-inner">
-        <!-- TVU Logo Area -->
-        <a href="index.html" class="brand-wrapper" title="TVU Books & Materials">
-          <img src="assets/tvu-logo.png" alt="Thiruvalluvar University Logo" class="brand-logo-img" onerror="this.src='https://via.placeholder.com/44?text=TVU'">
-          <div class="brand-text">
-            <span class="brand-name">TVU Books & Materials</span>
-            <span class="brand-sub">Thiruvalluvar University</span>
-          </div>
+  const displayName = cust && cust.name ? cust.name : (user && user.displayName ? user.displayName : 'Account');
+  const displayUserTag = cust && cust.username ? `@${cust.username}` : '';
+
+  headerContainer.innerHTML = `
+    <header class="custom-navbar">
+      <a href="index.html" class="nav-brand" title="TVU Books & Materials">
+        <img src="assets/tvu-logo.png" alt="TVU Logo" class="nav-brand-logo" onerror="this.src='https://via.placeholder.com/42?text=TVU'">
+        <div class="nav-brand-text">
+          <h2>TVU Books & Materials</h2>
+          <small>THIRUVALLUVAR UNIVERSITY</small>
+        </div>
+      </a>
+
+      <div class="nav-right">
+        <!-- Standalone Home Button -->
+        <a href="index.html" class="nav-home-btn ${isHome ? 'active' : ''}" title="Home">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+          </svg>
+          <span>Home</span>
         </a>
 
-        <!-- Main Navigation Links -->
-        <nav class="main-nav" id="main-nav-menu">
-          <a href="index.html" class="nav-link ${currentPath === 'index.html' || currentPath === '' ? 'active' : ''}">Home</a>
-          <a href="books.html" class="nav-link ${currentPath === 'books.html' ? 'active' : ''}">Books</a>
-          <a href="download-syllabus.html" class="nav-link ${currentPath === 'download-syllabus.html' ? 'active' : ''}">📥 Download Syllabus</a>
-          <a href="wishlist.html" class="nav-link ${currentPath === 'wishlist.html' ? 'active' : ''}">Wishlist</a>
-          <a href="orders.html" class="nav-link ${currentPath === 'orders.html' ? 'active' : ''}">Orders</a>
-          <a href="seller.html" class="nav-link ${currentPath === 'seller.html' || currentPath === 'seller-books.html' || currentPath === 'seller-orders.html' ? 'active' : ''}">
-            Sell Your Books
-          </a>
-          <a href="ai-support.html" class="nav-link nav-link-ai ${currentPath === 'ai-support.html' ? 'active' : ''}">
-            🤖 AI Support
-          </a>
-        </nav>
-
-        <!-- Right Side User Menu / Sign In Action -->
-        <div class="header-actions">
-          ${user ? `
-            <div class="user-menu">
-              <button class="user-avatar-btn" id="user-menu-btn" aria-label="Open User Menu" onclick="toggleUserDropdown(event)">
-                <img src="${user.photoURL || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80'}" alt="${user.displayName || 'User'}" class="user-avatar-img">
-                <span class="user-name-label">${user.displayName ? user.displayName.split(' ')[0] : 'Account'}</span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
-              </button>
-              
-              <div class="user-dropdown" id="user-dropdown-menu">
-                <div class="dropdown-header">
-                  <div class="dropdown-user-name">${user.displayName || 'University Member'}</div>
-                  <div class="dropdown-user-email">${user.email || ''}</div>
-                </div>
-                <a href="download-syllabus.html" class="dropdown-item">
-                  <span style="font-size:1rem; line-height:1; margin-right:2px;">📥</span>
-                  Download Syllabus & Papers
-                </a>
-                <a href="ai-support.html" class="dropdown-item">
-                  <span style="font-size:1rem; line-height:1; margin-right:2px;">🤖</span>
-                  NOVA AI Assistant
-                </a>
-                <a href="orders.html" class="dropdown-item">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
-                  My Orders
-                </a>
-                <a href="wishlist.html" class="dropdown-item">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-                  My Wishlist
-                </a>
-                <div class="dropdown-divider"></div>
-                <a href="seller.html" class="dropdown-item">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-                  ${isSeller ? 'Seller Dashboard' : 'Become a Seller'}
-                </a>
-                ${isSeller ? `
-                  <a href="seller-books.html" class="dropdown-item">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
-                    My Listed Books
-                  </a>
-                  <a href="seller-orders.html" class="dropdown-item">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
-                    Seller Orders
-                  </a>
-                ` : ''}
-                <div class="dropdown-divider"></div>
-                <button onclick="logoutUser()" class="dropdown-item text-danger" style="width:100%;border:none;background:none;text-align:left;">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-                  Log Out
-                </button>
-              </div>
-            </div>
-          ` : `
-            <button onclick="loginWithGoogle()" class="btn btn-primary btn-sm">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
-                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
-              </svg>
-              <span>Continue with Google</span>
-            </button>
-          `}
-
-          <!-- Mobile Hamburger Toggle -->
-          <button class="mobile-menu-btn" id="mobile-menu-toggle" onclick="toggleMobileMenu()" aria-label="Toggle navigation">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <!-- Menu Dropdown -->
+        <div class="menu-dropdown" id="global-nav-dropdown">
+          <button class="menu-btn" onclick="toggleGlobalMenu(event)" aria-label="Menu">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="3" y1="12" x2="21" y2="12"></line>
               <line x1="3" y1="6" x2="21" y2="6"></line>
               <line x1="3" y1="18" x2="21" y2="18"></line>
             </svg>
+            <span>Menu ▾</span>
           </button>
+          <div class="menu-content" id="global-menu-list">
+            <a href="books.html" class="${currentPath === 'books.html' ? 'active-link' : ''}">📚 All Books</a>
+            <a href="download-syllabus.html" class="${currentPath === 'download-syllabus.html' ? 'active-link' : ''}">📥 Download Syllabus</a>
+            <a href="wishlist.html" class="${currentPath === 'wishlist.html' ? 'active-link' : ''}">❤️ My Wishlist</a>
+            <a href="orders.html" class="${currentPath === 'orders.html' ? 'active-link' : ''}">📦 My Orders</a>
+            <a href="seller.html" class="${currentPath === 'seller.html' || currentPath === 'seller-books.html' || currentPath === 'seller-orders.html' ? 'active-link' : ''}">💼 Sell Your Books</a>
+            <a href="ai-support.html" class="${currentPath === 'ai-support.html' ? 'active-link' : ''}">🤖 AI Support</a>
+            ${user ? `
+              <div class="menu-divider"></div>
+              <button type="button" onclick="logoutUser()" class="menu-logout-btn">
+                🚪 Log Out (${escapeHTML(displayName.split(' ')[0])})
+              </button>
+            ` : ''}
+          </div>
+        </div>
+
+        <!-- User Profile Pill or Sign Up -->
+        <div id="auth-actions">
+          ${user ? `
+            <div class="user-pill" onclick="toggleGlobalMenu(event)" title="${escapeHTML(displayName)} (${escapeHTML(displayUserTag)})" style="display:flex; align-items:center; gap:8px; background:#f1f5f9; padding:4px 10px; border-radius:30px; border:1px solid #cbd5e1; cursor:pointer;">
+              <img src="${user.photoURL || 'https://via.placeholder.com/28'}" alt="User" class="user-pill-img" style="width:28px; height:28px; border-radius:50%; object-fit:cover;">
+              <div style="display:flex; flex-direction:column; text-align:left; line-height:1.1;">
+                <span class="user-pill-name" style="font-size:0.82rem; font-weight:700; color:#0f172a;">${escapeHTML(displayName.split(' ')[0])}</span>${displayUserTag ? `<span style="font-size:0.68rem; color:#64748b; font-weight:600;">${escapeHTML(displayUserTag)}</span>` : ''}
+              </div>
+            </div>
+          ` : `
+            <button type="button" class="signup-nav-btn" onclick="openGlobalAuthModal('signup')">
+              Sign up
+            </button>
+          `}
         </div>
       </div>
     </header>
+
+    <!-- Modal: Username / Email Dual Flow -->
+    <div class="modal-backdrop" id="global-auth-modal" style="display:none;" role="dialog" aria-modal="true">
+      <div class="auth-modal-dialog">
+        <div class="auth-modal-header">
+          <h3 id="global-modal-title">Create an Account</h3>
+          <button type="button" class="modal-close-btn" onclick="closeGlobalAuthModal()" aria-label="Close">&times;</button>
+        </div>
+
+        <!-- Alert for existing Google accounts -->
+        <div id="auth-existing-alert" style="display:none; background:#fff1f2; border:1.5px solid #fecdd3; border-radius:8px; padding:1.1rem; margin-bottom:1.15rem; text-align:center;">
+          <div style="font-weight:800; color:#e11d48; font-size:0.95rem; margin-bottom:0.35rem;">
+            ⚠️ Already you have an account!
+          </div>
+          <p id="existing-user-email-text" style="font-size:0.83rem; color:#881337; margin:0 0 0.85rem; line-height:1.45;">
+            Indha account ஏற்கெனவே register aagirukku. Please keezhe ulla Google Login upayogithu login seiyyavum.
+          </p>
+          <button type="button" class="google-btn-full" onclick="proceedExistingUserLogin()" style="background:#0f172a; color:#ffffff; border-color:#0f172a;">
+            <svg width="18" height="18" viewBox="0 0 24 24">
+              <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"/>
+              <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5.1 3.7-8.8z"/>
+              <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12.3 0 15.1s.7 5.4 1.9 7.8l3.7-2.9z"/>
+              <path fill="#34A853" d="M12 23.5c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2-6.4-4.8L1.9 17c1.8 3.7 5.6 6.5 10.1 6.5z"/>
+            </svg>
+            Continue with Google (Login)
+          </button>
+        </div>
+
+        <div id="default-google-block">
+          <button type="button" id="google-login-btn" class="google-btn-full" onclick="handleGoogleAuthTrigger()">
+            <svg width="18" height="18" viewBox="0 0 24 24">
+              <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"/>
+              <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5.1 3.7-8.8z"/>
+              <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12.3 0 15.1s.7 5.4 1.9 7.8l3.7-2.9z"/>
+              <path fill="#34A853" d="M12 23.5c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2-6.4-4.8L1.9 17c1.8 3.7 5.6 6.5 10.1 6.5z"/>
+            </svg>
+            <span id="google-btn-label">Continue with Google</span>
+          </button>
+
+          <div class="auth-divider">
+            <span id="auth-divider-text">or Username / Email</span>
+          </div>
+
+          <form id="global-custom-form" onsubmit="handleGlobalFormSubmit(event)">
+            <div class="auth-form-group">
+              <label for="auth-identifier-val" id="auth-identifier-label">Username / Email</label>
+              <input type="text" id="auth-identifier-val" required placeholder="Enter your username or email" oninput="handleFormIdentifierCheck(this)">
+              
+              <!-- Checklist displayed only when typing a username in sign-up mode -->
+              <div id="signup-username-checklist" class="instruction-pop-box" style="display:none; margin-top:6px;">
+                <span style="font-weight:700; display:block; margin-bottom:0.35rem; color:#0f172a;">Username Requirements:</span>
+                <div class="rule-item" id="rule-letters-signup">
+                  <span class="rule-indicator">✕</span> Letters (a-z, A-Z)
+                </div>
+                <div class="rule-item" id="rule-numbers-signup">
+                  <span class="rule-indicator">✕</span> Numbers (0-9)
+                </div>
+                <div class="rule-item" id="rule-symbols-signup">
+                  <span class="rule-indicator">✕</span> Special Character (@, #, $, _, etc.)
+                </div>
+                <div class="rule-item" id="rule-spaces-signup">
+                  <span class="rule-indicator">✕</span> No Spaces
+                </div>
+              </div>
+            </div>
+
+            <div class="auth-form-group">
+              <label for="auth-password-val">Password</label>
+              <input type="password" id="auth-password-val" required minlength="6" placeholder="Enter password (min 6 characters)">
+            </div>
+
+            <button type="submit" id="auth-form-submit-btn" class="auth-submit-btn">
+              Continue
+            </button>
+          </form>
+
+          <div class="auth-switch-wrap">
+            <span id="auth-switch-label">Already have an account? </span>
+            <a href="javascript:void(0)" id="auth-switch-btn" onclick="toggleGlobalAuthMode()">Login</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Complete Profile Modal (Step 2) -->
+    <div class="modal-backdrop" id="google-profile-setup-modal" style="display:none;" role="dialog" aria-modal="true">
+      <div class="auth-modal-dialog">
+        <div class="auth-modal-header">
+          <h3>Complete Your Profile</h3>
+          <button type="button" class="modal-close-btn" onclick="closeProfileSetupModal()" aria-label="Close">&times;</button>
+        </div>
+        <p style="font-size:0.85rem; color:#64748b; margin-bottom:1.2rem;">
+          Mee details enter chesi registration finish cheyandi.
+        </p>
+
+        <form id="profile-details-form" onsubmit="handleProfileCompletion(event)">
+          <!-- Full Name Field (Letters Only) -->
+          <div class="auth-form-group">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <label for="setup-full-name">Full Name <span style="color:#dc2626;">*</span></label>
+              <span id="name-status-icon" style="font-size:0.8rem; font-weight:700;"></span>
+            </div>
+            <input type="text" id="setup-full-name" required placeholder="e.g. Ramesh Kumar" oninput="handleLiveNameCheck(this)">
+          </div>
+
+          <!-- Username Field (With live checklist) -->
+          <div class="auth-form-group" style="position:relative; margin-top:1.1rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <label for="setup-username">Username <span style="color:#dc2626;">*</span></label>
+              <span id="user-status-icon" style="font-size:0.8rem; font-weight:700;"></span>
+            </div>
+            <input type="text" id="setup-username" required placeholder="e.g. ramesh_99@" 
+                   onfocus="showUsernameInstructions()" 
+                   oninput="handleLiveUsernameCheck(this)">
+            
+            <div id="username-instruction-box" class="instruction-pop-box">
+              <span style="font-weight:700; display:block; margin-bottom:0.35rem; color:#0f172a;">Username Requirements:</span>
+              <div class="rule-item" id="rule-letters">
+                <span class="rule-indicator">✕</span> Letters (a-z, A-Z)
+              </div>
+              <div class="rule-item" id="rule-numbers">
+                <span class="rule-indicator">✕</span> Numbers (0-9)
+              </div>
+              <div class="rule-item" id="rule-symbols">
+                <span class="rule-indicator">✕</span> Special Character (@, #, $, _, etc.)
+              </div>
+              <div class="rule-item" id="rule-spaces">
+                <span class="rule-indicator">✕</span> No Spaces
+              </div>
+            </div>
+          </div>
+
+          <!-- Email Address Field -->
+          <div class="auth-form-group" style="margin-top:1.1rem;">
+            <label for="setup-email-address">Email Address (Security Verification) <span style="color:#dc2626;">*</span></label>
+            <input type="email" id="setup-email-address" required placeholder="student@tvu.edu.in">
+          </div>
+
+          <button type="submit" id="setup-profile-submit-btn" class="auth-submit-btn" style="margin-top:1rem;">
+            Save & Continue
+          </button>
+        </form>
+      </div>
+    </div>
   `;
 
-  headerContainer.innerHTML = html;
   renderFloatingNovaWidget();
 }
 
-/**
- * Renders floating NOVA AI Assistant button on all pages
- */
+// Full Name Validation (Border updates, letters only)
+function handleLiveNameCheck(input) {
+  const icon = document.getElementById('name-status-icon');
+  const val = input.value.trim();
+
+  if (val.length === 0) {
+    input.classList.remove('input-valid', 'input-invalid');
+    if (icon) icon.innerText = '';
+    return false;
+  }
+
+  const isValid = /^[A-Za-z\s]+$/.test(val);
+
+  if (isValid) {
+    input.classList.remove('input-invalid');
+    input.classList.add('input-valid');
+    if (icon) {
+      icon.innerText = '✓';
+      icon.style.color = '#16a34a';
+    }
+    return true;
+  } else {
+    input.classList.remove('input-valid');
+    input.classList.add('input-invalid');
+    if (icon) {
+      icon.innerText = '✕ Letters Only';
+      icon.style.color = '#dc2626';
+    }
+    return false;
+  }
+}
+
+function showUsernameInstructions() {
+  const box = document.getElementById('username-instruction-box');
+  if (box) box.style.display = 'block';
+}
+
+// Live Username Checklist in Step 2 Modal
+function handleLiveUsernameCheck(input) {
+  const box = document.getElementById('username-instruction-box');
+  if (box) box.style.display = 'block';
+
+  const val = input.value;
+  const icon = document.getElementById('user-status-icon');
+
+  const ruleLetters = document.getElementById('rule-letters');
+  const ruleNumbers = document.getElementById('rule-numbers');
+  const ruleSymbols = document.getElementById('rule-symbols');
+  const ruleSpaces = document.getElementById('rule-spaces');
+
+  const hasLetter = /[A-Za-z]/.test(val);
+  const hasNumber = /[0-9]/.test(val);
+  const hasSymbol = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(val);
+  const hasNoSpace = !/\s/.test(val) && val.length > 0;
+
+  updateRuleElement(ruleLetters, hasLetter);
+  updateRuleElement(ruleNumbers, hasNumber);
+  updateRuleElement(ruleSymbols, hasSymbol);
+  updateRuleElement(ruleSpaces, hasNoSpace);
+
+  const isAllValid = hasLetter && hasNumber && hasSymbol && hasNoSpace;
+
+  if (isAllValid) {
+    input.classList.remove('input-invalid');
+    input.classList.add('input-valid');
+    if (icon) {
+      icon.innerText = '✓';
+      icon.style.color = '#16a34a';
+    }
+    return true;
+  } else {
+    input.classList.remove('input-valid');
+    if (val.length > 0) {
+      input.classList.add('input-invalid');
+      if (icon) {
+        icon.innerText = '✕ Incomplete';
+        icon.style.color = '#dc2626';
+      }
+    } else {
+      input.classList.remove('input-invalid');
+      if (icon) icon.innerText = '';
+    }
+    return false;
+  }
+}
+
+// Live Validation when typing in Step 1 Username / Email box
+function handleFormIdentifierCheck(input) {
+  const val = input.value.trim();
+  const box = document.getElementById('signup-username-checklist');
+
+  // If user is entering an Email, hide the username requirements checklist
+  if (val.includes('@') || globalAuthMode !== 'signup') {
+    if (box) box.style.display = 'none';
+    input.classList.remove('input-invalid', 'input-valid');
+    return;
+  }
+
+  // If entering a Username in Sign Up mode, show checklist
+  if (box) box.style.display = 'block';
+
+  const ruleLetters = document.getElementById('rule-letters-signup');
+  const ruleNumbers = document.getElementById('rule-numbers-signup');
+  const ruleSymbols = document.getElementById('rule-symbols-signup');
+  const ruleSpaces = document.getElementById('rule-spaces-signup');
+
+  const hasLetter = /[A-Za-z]/.test(val);
+  const hasNumber = /[0-9]/.test(val);
+  const hasSymbol = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(val);
+  const hasNoSpace = !/\s/.test(val) && val.length > 0;
+
+  updateRuleElement(ruleLetters, hasLetter);
+  updateRuleElement(ruleNumbers, hasNumber);
+  updateRuleElement(ruleSymbols, hasSymbol);
+  updateRuleElement(ruleSpaces, hasNoSpace);
+
+  const isAllValid = hasLetter && hasNumber && hasSymbol && hasNoSpace;
+
+  if (isAllValid) {
+    input.classList.remove('input-invalid');
+    input.classList.add('input-valid');
+  } else {
+    input.classList.remove('input-valid');
+    if (val.length > 0) input.classList.add('input-invalid');
+  }
+}
+
+function updateRuleElement(el, isPassed) {
+  if (!el) return;
+  const ind = el.querySelector('.rule-indicator');
+  if (isPassed) {
+    el.classList.add('passed');
+    if (ind) ind.innerText = '✓';
+  } else {
+    el.classList.remove('passed');
+    if (ind) ind.innerText = '✕';
+  }
+}
+
+// Step 1 Form Submission (Username or Email Login / Step-1 Signup)
+async function handleGlobalFormSubmit(e) {
+  e.preventDefault();
+  const identInput = document.getElementById('auth-identifier-val');
+  const passInput = document.getElementById('auth-password-val');
+  const identifier = identInput ? identInput.value.trim() : '';
+  const pass = passInput ? passInput.value.trim() : '';
+
+  if (!identifier || !pass) return;
+
+  const submitBtn = document.getElementById('auth-form-submit-btn');
+  const origText = submitBtn.innerText;
+  submitBtn.disabled = true;
+  submitBtn.innerText = 'Processing...';
+
+  try {
+    if (globalAuthMode === 'signup') {
+      // 1. SIGN UP USING EMAIL
+      if (identifier.includes('@')) {
+        // Basic email syntax check
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(identifier)) {
+          alert("Please enter a valid email address!");
+          submitBtn.disabled = false;
+          submitBtn.innerText = origText;
+          return;
+        }
+
+        pendingSignupDetails = { email: identifier, password: pass };
+        closeGlobalAuthModal();
+        openProfileSetupModal(null, null, identifier);
+
+      } else {
+        // 2. SIGN UP USING USERNAME
+        const hasLetter = /[A-Za-z]/.test(identifier);
+        const hasNumber = /[0-9]/.test(identifier);
+        const hasSymbol = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(identifier);
+        const hasNoSpace = !/\s/.test(identifier);
+
+        if (!hasLetter || !hasNumber || !hasSymbol || !hasNoSpace) {
+          alert("Username requirements check pannunga (Letters, Numbers & Special Characters kandippa irukkanum).");
+          submitBtn.disabled = false;
+          submitBtn.innerText = origText;
+          return;
+        }
+
+        // Safe username availability check
+        try {
+          const userCheck = await db.collection('customers').where('username', '==', identifier).get();
+          if (!userCheck.empty) {
+            alert("This username is already taken! Please choose another one.");
+            submitBtn.disabled = false;
+            submitBtn.innerText = origText;
+            return;
+          }
+        } catch (checkErr) {
+          console.warn("Username query note:", checkErr);
+        }
+
+        pendingSignupDetails = { username: identifier, password: pass };
+        closeGlobalAuthModal();
+        openProfileSetupModal(null, identifier, null);
+      }
+
+    } else {
+      // LOGIN MODE: Supports Username or Email
+      let targetEmail = identifier;
+
+      if (!identifier.includes('@')) {
+        const query = await db.collection('customers').where('username', '==', identifier).limit(1).get();
+        if (query.empty) {
+          alert("No account found with this username! Please sign up.");
+          submitBtn.disabled = false;
+          submitBtn.innerText = origText;
+          return;
+        }
+        targetEmail = query.docs[0].data().email;
+      }
+
+      await auth.signInWithEmailAndPassword(targetEmail, pass);
+      closeGlobalAuthModal();
+      if (typeof showToast === 'function') {
+        showToast("Logged in successfully!", "success");
+      }
+    }
+  } catch (err) {
+    if (err.code === 'auth/wrong-password') {
+      alert("Incorrect password. Please try again.");
+    } else if (err.code === 'auth/user-not-found') {
+      alert("No account found with this email. Please Sign up!");
+    } else {
+      alert("Notice: " + err.message);
+    }
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerText = origText;
+  }
+}
+
+// Step 2 Profile Completion
+async function handleProfileCompletion(e) {
+  e.preventDefault();
+  const nameInput = document.getElementById('setup-full-name');
+  const usernameInput = document.getElementById('setup-username');
+  const emailInput = document.getElementById('setup-email-address');
+
+  const isNameOk = handleLiveNameCheck(nameInput);
+  const isUserOk = handleLiveUsernameCheck(usernameInput);
+
+  if (!isNameOk) {
+    nameInput.focus();
+    return;
+  }
+
+  if (!isUserOk) {
+    usernameInput.focus();
+    return;
+  }
+
+  const nameVal = nameInput.value.trim();
+  const userVal = usernameInput.value.trim();
+  const emailVal = emailInput.value.trim();
+
+  const btn = document.getElementById('setup-profile-submit-btn');
+  btn.disabled = true;
+  btn.innerText = "Saving Account...";
+
+  try {
+    const now = firebase.firestore.FieldValue.serverTimestamp();
+
+    if (pendingSignupDetails) {
+      // Create user account with Firebase Auth
+      const authEmail = pendingSignupDetails.email || emailVal;
+      const cred = await auth.createUserWithEmailAndPassword(authEmail, pendingSignupDetails.password);
+      const user = cred.user;
+
+      await db.collection('customers').doc(user.uid).set({
+        uid: user.uid,
+        name: nameVal,
+        username: userVal,
+        email: authEmail,
+        profileImage: '',
+        role: 'customer',
+        createdAt: now,
+        updatedAt: now
+      });
+
+      currentCustomerData = { uid: user.uid, name: nameVal, username: userVal, email: authEmail };
+      pendingSignupDetails = null;
+
+    } else {
+      // Google Login Profile Completion
+      const user = pendingGoogleUser || auth.currentUser;
+      if (!user) return;
+
+      await db.collection('customers').doc(user.uid).set({
+        uid: user.uid,
+        name: nameVal,
+        username: userVal,
+        email: emailVal || user.email || '',
+        profileImage: user.photoURL || '',
+        role: 'customer',
+        createdAt: now,
+        updatedAt: now
+      }, { merge: true });
+
+      currentCustomerData = { uid: user.uid, name: nameVal, username: userVal, email: emailVal || user.email };
+    }
+
+    closeProfileSetupModal();
+    renderUniversalHeader();
+    if (typeof showToast === 'function') {
+      showToast("Account created successfully!", "success");
+    }
+  } catch (err) {
+    alert("Profile Error: " + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerText = "Save & Continue";
+  }
+}
+
+// Google Auth Trigger with Existing User Alert Interception
+async function handleGoogleAuthTrigger() {
+  isCheckingSignupExisting = true;
+
+  try {
+    const res = await auth.signInWithPopup(googleProvider);
+    if (!res || !res.user) {
+      isCheckingSignupExisting = false;
+      return;
+    }
+
+    const loggedUser = res.user;
+    const doc = await db.collection('customers').doc(loggedUser.uid).get();
+
+    if (globalAuthMode === 'signup' && doc.exists && doc.data().username) {
+      await auth.signOut();
+      currentAuthUser = null;
+      isCheckingSignupExisting = false;
+
+      const alertBox = document.getElementById('auth-existing-alert');
+      const defGoogle = document.getElementById('default-google-block');
+      const emailText = document.getElementById('existing-user-email-text');
+
+      if (emailText) {
+        emailText.innerText = `Account (${loggedUser.email}) ஏற்கெனவே register aagirukku. Login seiyya keezhe click seiyyavum.`;
+      }
+
+      if (alertBox) alertBox.style.display = 'block';
+      if (defGoogle) defGoogle.style.display = 'none';
+
+      globalAuthMode = 'login';
+      const modalTitle = document.getElementById('global-modal-title');
+      if (modalTitle) modalTitle.innerText = "Account Already Exists";
+
+      return;
+    }
+
+    isCheckingSignupExisting = false;
+    closeGlobalAuthModal();
+
+    if (!doc.exists || !doc.data().username) {
+      openProfileSetupModal(loggedUser);
+    } else {
+      currentCustomerData = doc.data();
+      currentAuthUser = loggedUser;
+      renderUniversalHeader();
+      if (typeof showToast === 'function') {
+        showToast(`Welcome back, ${doc.data().name || loggedUser.displayName}!`, "success");
+      }
+    }
+  } catch (err) {
+    isCheckingSignupExisting = false;
+    if (err.code !== 'auth/popup-closed-by-user') {
+      alert("Notice: " + err.message);
+    }
+  }
+}
+
+async function proceedExistingUserLogin() {
+  try {
+    const res = await auth.signInWithPopup(googleProvider);
+    if (res && res.user) {
+      const doc = await db.collection('customers').doc(res.user.uid).get();
+      if (doc.exists) currentCustomerData = doc.data();
+
+      currentAuthUser = res.user;
+      closeGlobalAuthModal();
+      renderUniversalHeader();
+      if (typeof showToast === 'function') {
+        showToast(`Welcome back, ${res.user.displayName || 'User'}!`, "success");
+      }
+    }
+  } catch (err) {
+    if (err.code !== 'auth/popup-closed-by-user') {
+      alert(err.message);
+    }
+  }
+}
+
+// Open Step 2 Profile Setup Modal
+function openProfileSetupModal(user, prefilledUsername, prefilledEmail) {
+  pendingGoogleUser = user;
+  const m = document.getElementById('google-profile-setup-modal');
+  if (m) {
+    m.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+
+    const nameInput = document.getElementById('setup-full-name');
+    const userInput = document.getElementById('setup-username');
+    const emailInput = document.getElementById('setup-email-address');
+
+    if (user) {
+      // Google Login Profile Setup
+      if (nameInput && user.displayName) {
+        nameInput.value = user.displayName.replace(/[^a-zA-Z\s]/g, '');
+        handleLiveNameCheck(nameInput);
+      }
+      if (emailInput && user.email) {
+        emailInput.value = user.email;
+        emailInput.readOnly = true;
+      }
+      if (userInput) {
+        userInput.readOnly = false;
+        userInput.value = '';
+      }
+    } else {
+      // Custom Registration Flow
+      if (prefilledUsername && userInput) {
+        // User entered username in step 1 -> fix username, let them enter email
+        userInput.value = prefilledUsername;
+        userInput.readOnly = true;
+        handleLiveUsernameCheck(userInput);
+        if (emailInput) {
+          emailInput.value = '';
+          emailInput.readOnly = false;
+        }
+      } else if (prefilledEmail && emailInput) {
+        // User entered email in step 1 -> fix email, let them choose username
+        emailInput.value = prefilledEmail;
+        emailInput.readOnly = true;
+        if (userInput) {
+          userInput.value = '';
+          userInput.readOnly = false;
+        }
+      }
+    }
+  }
+}
+
+function closeProfileSetupModal() {
+  const m = document.getElementById('google-profile-setup-modal');
+  if (m) {
+    m.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+}
+
+function toggleGlobalMenu(e) {
+  if (e) e.stopPropagation();
+  const list = document.getElementById('global-menu-list');
+  if (list) list.classList.toggle('show');
+}
+
+window.addEventListener('click', function(e) {
+  const dropdown = document.getElementById('global-nav-dropdown');
+  const list = document.getElementById('global-menu-list');
+  if (list && dropdown && !dropdown.contains(e.target)) {
+    list.classList.remove('show');
+  }
+});
+
+function openGlobalAuthModal(mode) {
+  globalAuthMode = mode || 'signup';
+  
+  const alertBox = document.getElementById('auth-existing-alert');
+  const defGoogle = document.getElementById('default-google-block');
+  if (alertBox) alertBox.style.display = 'none';
+  if (defGoogle) defGoogle.style.display = 'block';
+
+  updateGlobalAuthUI();
+  const m = document.getElementById('global-auth-modal');
+  if (m) {
+    m.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function closeGlobalAuthModal() {
+  const m = document.getElementById('global-auth-modal');
+  if (m) {
+    m.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+}
+
+function toggleGlobalAuthMode() {
+  globalAuthMode = (globalAuthMode === 'signup') ? 'login' : 'signup';
+  const alertBox = document.getElementById('auth-existing-alert');
+  const defGoogle = document.getElementById('default-google-block');
+  if (alertBox) alertBox.style.display = 'none';
+  if (defGoogle) defGoogle.style.display = 'block';
+  updateGlobalAuthUI();
+}
+
+function updateGlobalAuthUI() {
+  const title = document.getElementById('global-modal-title');
+  const submitBtn = document.getElementById('auth-form-submit-btn');
+  const switchLabel = document.getElementById('auth-switch-label');
+  const switchBtn = document.getElementById('auth-switch-btn');
+  const identLabel = document.getElementById('auth-identifier-label');
+  const identInput = document.getElementById('auth-identifier-val');
+  const checkList = document.getElementById('signup-username-checklist');
+
+  if (!title || !submitBtn) return;
+
+  if (identLabel) identLabel.innerText = 'Username / Email';
+  if (identInput) identInput.placeholder = 'Enter your username or email';
+
+  if (globalAuthMode === 'signup') {
+    title.innerText = 'Create an Account';
+    submitBtn.innerText = 'Continue';
+    switchLabel.innerText = 'Already have an account? ';
+    switchBtn.innerText = 'Login';
+  } else {
+    title.innerText = 'Welcome Back';
+    submitBtn.innerText = 'Login';
+    switchLabel.innerText = "Don't have an account? ";
+    switchBtn.innerText = 'Sign up';
+    if (checkList) checkList.style.display = 'none';
+  }
+}
+
+async function logoutUser() {
+  try {
+    await auth.signOut();
+    currentCustomerData = null;
+    window.location.href = "index.html";
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+async function syncCustomerProfile(user) {
+  if (!db) return;
+  const customerRef = db.collection('customers').doc(user.uid);
+  const doc = await customerRef.get();
+  if (doc.exists) {
+    currentCustomerData = doc.data();
+  }
+}
+
+async function fetchSellerProfile(uid) {
+  if (!db) return null;
+  try {
+    const doc = await db.collection('sellers').doc(uid).get();
+    currentSellerData = doc.exists ? doc.data() : null;
+    return currentSellerData;
+  } catch (e) {
+    return null;
+  }
+}
+
 function renderFloatingNovaWidget() {
   const currentPath = window.location.pathname.split('/').pop() || 'index.html';
   if (currentPath === 'ai-support.html') return;
 
   if (!document.getElementById('nova-floating-widget')) {
-    if (!document.querySelector('link[href*="ai-support.css"]')) {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = 'css/ai-support.css';
-      document.head.appendChild(link);
-    }
-
     const widget = document.createElement('a');
     widget.id = 'nova-floating-widget';
     widget.className = 'nova-floating-btn';
     widget.href = 'ai-support.html';
-    widget.title = 'Ask NOVA AI Assistant';
     widget.innerHTML = `
       <div class="nova-floating-icon">🦢</div>
       <span class="nova-floating-label">Ask NOVA AI</span>
@@ -293,54 +857,30 @@ function renderFloatingNovaWidget() {
   }
 }
 
-// Dropdown toggle
-function toggleUserDropdown(e) {
-  e.stopPropagation();
-  const dropdown = document.getElementById('user-dropdown-menu');
-  if (dropdown) {
-    dropdown.classList.toggle('show');
-  }
+function escapeHTML(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }
 
-// Mobile menu toggle
-function toggleMobileMenu() {
-  const nav = document.getElementById('main-nav-menu');
-  if (nav) {
-    nav.classList.toggle('open');
-  }
-}
-
-// Close dropdown when clicking outside
-document.addEventListener('click', () => {
-  const dropdown = document.getElementById('user-dropdown-menu');
-  if (dropdown && dropdown.classList.contains('show')) {
-    dropdown.classList.remove('show');
-  }
-});
-
-// Guard helper for protected pages
-function requireAuthentication(redirectUrl = 'index.html') {
-  return new Promise((resolve) => {
-    auth.onAuthStateChanged((user) => {
-      if (!user) {
-        showToast("Please sign in with Google to access this page.", "warning");
-        setTimeout(() => {
-          window.location.href = redirectUrl;
-        }, 1200);
-      } else {
-        resolve(user);
-      }
-    });
-  });
-}
-
-// Initialize on page load
 document.addEventListener('DOMContentLoaded', initAuth);
 
-// Export to window
-window.loginWithGoogle = loginWithGoogle;
+// Global Exports
+window.toggleGlobalMenu = toggleGlobalMenu;
+window.openGlobalAuthModal = openGlobalAuthModal;
+window.closeGlobalAuthModal = closeGlobalAuthModal;
+window.toggleGlobalAuthMode = toggleGlobalAuthMode;
+window.handleGlobalFormSubmit = handleGlobalFormSubmit;
+window.handleGoogleAuthTrigger = handleGoogleAuthTrigger;
+window.proceedExistingUserLogin = proceedExistingUserLogin;
 window.logoutUser = logoutUser;
-window.requireAuthentication = requireAuthentication;
-window.toggleUserDropdown = toggleUserDropdown;
-window.toggleMobileMenu = toggleMobileMenu;
-window.fetchSellerProfile = fetchSellerProfile;
+window.handleLiveNameCheck = handleLiveNameCheck;
+window.showUsernameInstructions = showUsernameInstructions;
+window.handleLiveUsernameCheck = handleLiveUsernameCheck;
+window.handleFormIdentifierCheck = handleFormIdentifierCheck;
+window.handleProfileCompletion = handleProfileCompletion;
+window.closeProfileSetupModal = closeProfileSetupModal;

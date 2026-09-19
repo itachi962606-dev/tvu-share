@@ -13,7 +13,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initHomePage();
 });
 
-// Re-fetch wishlist whenever auth state changes
 window.addEventListener('authStateChanged', (e) => {
   if (e.detail.user) {
     loadUserWishlist(e.detail.user.uid);
@@ -30,9 +29,6 @@ async function initHomePage() {
   await loadBooks();
 }
 
-/**
- * Load books dynamically from Firestore
- */
 async function loadBooks() {
   const container = document.getElementById('books-container');
   if (!container) return;
@@ -84,9 +80,6 @@ async function loadBooks() {
   }
 }
 
-/**
- * Load user's wishlist IDs
- */
 async function loadUserWishlist(uid) {
   try {
     const snapshot = await db.collection('users').doc(uid).collection('wishlist').get();
@@ -100,9 +93,6 @@ async function loadUserWishlist(uid) {
   renderBooksList();
 }
 
-/**
- * Render filtered books
- */
 function renderBooksList() {
   const container = document.getElementById('books-container');
   if (!container) return;
@@ -198,9 +188,6 @@ function renderBooksList() {
   container.innerHTML = html;
 }
 
-/**
- * Setup Category Filter Chips
- */
 function setupCategoryChips() {
   const chips = document.querySelectorAll('.chip-btn');
   chips.forEach(chip => {
@@ -213,9 +200,6 @@ function setupCategoryChips() {
   });
 }
 
-/**
- * Setup Search Input
- */
 function setupSearchInput() {
   const input = document.getElementById('search-input');
   if (input) {
@@ -226,14 +210,12 @@ function setupSearchInput() {
   }
 }
 
-/**
- * Toggle Wishlist
- */
 async function toggleWishlist(bookId, event) {
   if (event) event.stopPropagation();
 
   if (!auth.currentUser) {
-    showToast("Please sign in with Google to add books to your wishlist.", "warning");
+    showToast("Please sign in to add books to your wishlist.", "warning");
+    openGlobalAuthModal('signup');
     return;
   }
 
@@ -270,12 +252,10 @@ async function toggleWishlist(bookId, event) {
   }
 }
 
-/**
- * Initiate Buy Now Modal
- */
 function initiateBuyNow(bookId) {
   if (!auth.currentUser) {
-    showToast("Please sign in with Google to place an order.", "warning");
+    showToast("Please sign in to place an order.", "warning");
+    openGlobalAuthModal('signup');
     return;
   }
 
@@ -284,7 +264,6 @@ function initiateBuyNow(bookId) {
 
   selectedBookForOrder = book;
 
-  // Prefill order modal fields
   document.getElementById('modal-book-img').src = book.imageUrl || 'https://via.placeholder.com/90';
   document.getElementById('modal-book-title').textContent = book.title;
   document.getElementById('modal-book-seller').textContent = `Seller: ${book.sellerName || 'TVU Member'}`;
@@ -292,7 +271,6 @@ function initiateBuyNow(bookId) {
   document.getElementById('order-qty').value = 1;
   document.getElementById('modal-order-total').textContent = formatINR(book.discountedPrice || book.originalPrice);
 
-  // Prefill user details from Google Auth
   const user = auth.currentUser;
   const nameInput = document.getElementById('order-cust-name');
   const phoneInput = document.getElementById('order-cust-phone');
@@ -305,9 +283,6 @@ function initiateBuyNow(bookId) {
   openModal('buy-now-modal');
 }
 
-/**
- * Handle Order Form Submit
- */
 function setupOrderForm() {
   const form = document.getElementById('order-checkout-form');
   const qtyInput = document.getElementById('order-qty');
@@ -338,7 +313,6 @@ function setupOrderForm() {
       const address = document.getElementById('order-cust-address').value.trim();
       const quantity = parseInt(qtyInput.value) || 1;
 
-      // Validation
       if (!name || !phone || !address) {
         showToast("Please fill in your Name, Phone Number, and Delivery Address.", "warning");
         submitBtn.disabled = false;
@@ -380,11 +354,9 @@ function setupOrderForm() {
       };
 
       try {
-        // 1. Create order in Firestore
         const docRef = await db.collection('orders').add(orderPayload);
         orderPayload.id = docRef.id;
 
-        // 2. Reduce stock if present
         if (selectedBookForOrder.stock !== undefined && selectedBookForOrder.stock > 0) {
           const newStock = Math.max(0, selectedBookForOrder.stock - quantity);
           await db.collection('books').doc(selectedBookForOrder.id).update({
@@ -393,24 +365,20 @@ function setupOrderForm() {
           });
         }
 
-        // Close checkout modal
         closeModal('buy-now-modal');
         form.reset();
 
-        // 3. Show Success Celebration Modal ONLY after successful creation
         document.getElementById('confirmed-order-id').textContent = `#${orderPayload.orderId}`;
         openModal('order-confirmed-modal');
         triggerConfettiCelebration();
         showToast("Order placed successfully!", "success");
 
-        // 4. Send EmailJS notification in background (Seller only)
         if (typeof sendNewOrderSellerEmail === 'function') {
           sendNewOrderSellerEmail(orderPayload);
         } else if (typeof sendSellerOrderNotification === 'function') {
           sendSellerOrderNotification(orderPayload);
         }
 
-        // Reload catalog
         loadBooks();
       } catch (err) {
         console.error("Order placement failed:", err);
@@ -421,17 +389,6 @@ function setupOrderForm() {
       }
     });
   }
-}
-
-// Utility HTML escape
-function escapeHTML(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
 }
 
 window.loadBooks = loadBooks;

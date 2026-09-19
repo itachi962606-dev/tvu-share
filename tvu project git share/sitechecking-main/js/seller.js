@@ -27,7 +27,7 @@ function showLoggedOutState() {
         <div class="empty-state-icon">🎓</div>
         <h3 class="empty-state-title">Become a TVU Book Seller</h3>
         <p class="empty-state-text">Sign in with your Google account to list your academic textbooks and study materials for university peers.</p>
-        <button onclick="loginWithGoogle()" class="btn btn-primary">Continue with Google</button>
+        <button onclick="openGlobalAuthModal('signup')" class="btn btn-primary">Sign in / Register</button>
       </div>
     `;
   }
@@ -41,13 +41,12 @@ async function checkSellerOnboarding(user) {
     const sellerDoc = await db.collection('sellers').doc(user.uid).get();
 
     if (sellerDoc.exists) {
-      // User is already registered as a seller
       const seller = sellerDoc.data();
       container.innerHTML = `
         <div class="form-card" style="max-width: 640px; margin: 0 auto; text-align: center;">
           <img src="${seller.profileImage || user.photoURL || 'https://via.placeholder.com/80'}" 
                alt="${escapeHTML(seller.name)}" 
-               style="width: 84px; height: 84px; border-radius: 50%; margin: 0 auto 1rem; border: 3px solid var(--accent);">
+               style="width: 84px; height: 84px; border-radius: 50%; margin: 0 auto 1rem; border: 3px solid var(--accent); object-fit: cover;">
           <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--primary); margin-bottom: 0.25rem;">
             ${escapeHTML(seller.name)}
           </h2>
@@ -71,7 +70,6 @@ async function checkSellerOnboarding(user) {
         </div>
       `;
     } else {
-      // Show Seller Registration Form
       renderRegistrationForm(user);
     }
   } catch (error) {
@@ -189,9 +187,4 @@ function setupSellerForm() {
       submitBtn.innerHTML = originalText;
     }
   });
-}
-
-function escapeHTML(str) {
-  if (!str) return '';
-  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }

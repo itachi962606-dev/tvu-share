@@ -1,6 +1,6 @@
 /**
  * TVU Books & Materials - Seller Books Management Controller
- * Handles: Adding Books with Firebase Storage Image Upload, Editing Listings, Replacing Images, and Deleting
+ * Handles: Adding Books with Cloudinary Image Upload, Editing Listings, Replacing Images, and Deleting
  */
 
 let sellerBooks = [];
@@ -8,18 +8,6 @@ let currentSeller = null;
 let editingBookId = null;
 let selectedFile = null;
 let editSelectedFile = null;
-
-const CATEGORIES = [
-  "Computer Science",
-  "Mathematics",
-  "Science",
-  "Commerce",
-  "Management",
-  "Arts",
-  "General",
-  "Study Materials",
-  "Other"
-];
 
 document.addEventListener('DOMContentLoaded', () => {
   initSellerBooksPage();
@@ -57,7 +45,7 @@ function showLoggedOutState() {
         <div class="empty-state-icon">🔒</div>
         <h3 class="empty-state-title">Sign in Required</h3>
         <p class="empty-state-text">You must be signed in as a registered TVU seller to manage book inventory.</p>
-        <button onclick="loginWithGoogle()" class="btn btn-primary">Sign in with Google</button>
+        <button onclick="openGlobalAuthModal('signup')" class="btn btn-primary">Sign in / Register</button>
       </div>
     `;
   }
@@ -158,8 +146,7 @@ function renderSellerBooksTable() {
                 </td>
                 <td><span class="badge badge-category" style="font-size:0.75rem;">${escapeHTML(book.category || 'General')}</span></td>
                 <td>
-                  <div style="font-weight:700; color:var(--primary);">${formatINR(disc)}</div>
-                  ${orig > disc ? `<div style="font-size:0.75rem; color:var(--text-light); text-decoration:line-through;">${formatINR(orig)}</div>` : ''}
+                  <div style="font-weight:700; color:var(--primary);">${formatINR(disc)}</div>${orig > disc ? `<div style="font-size:0.75rem; color:var(--text-light); text-decoration:line-through;">${formatINR(orig)}</div>` : ''}
                 </td>
                 <td><strong>${book.stock || 1}</strong></td>
                 <td>
@@ -187,9 +174,6 @@ function renderSellerBooksTable() {
   `;
 }
 
-/**
- * Setup Real-time Discount Calculator
- */
 function setupPriceCalculators() {
   const origInput = document.getElementById('book-orig-price');
   const discInput = document.getElementById('book-disc-price');
@@ -213,7 +197,6 @@ function setupPriceCalculators() {
     discInput.addEventListener('input', updateDiscountBadge);
   }
 
-  // For Edit modal
   const editOrig = document.getElementById('edit-book-orig-price');
   const editDisc = document.getElementById('edit-book-disc-price');
   const editBadge = document.getElementById('edit-discount-preview');
@@ -237,9 +220,6 @@ function setupPriceCalculators() {
   }
 }
 
-/**
- * Image Dropzones & File Validation
- */
 function setupImageDropzones() {
   const dropzone = document.getElementById('add-image-dropzone');
   const fileInput = document.getElementById('add-book-image-file');
@@ -297,9 +277,6 @@ function showPreview(file, imgEl, dropzoneEl) {
   reader.readAsDataURL(file);
 }
 
-/**
- * Handle Add Book Form Submit
- */
 function setupAddBookForm() {
   const form = document.getElementById('add-book-form');
   if (!form) return;
@@ -322,7 +299,6 @@ function setupAddBookForm() {
     const discPrice = parseFloat(document.getElementById('book-disc-price').value);
     const stock = parseInt(document.getElementById('book-stock').value) || 1;
 
-    // Validations
     if (!title || !author || isNaN(origPrice) || isNaN(discPrice)) {
       showToast("Please fill in all required fields.", "warning");
       return;
@@ -350,18 +326,15 @@ function setupAddBookForm() {
     const bookId = 'book_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
 
     try {
-      // 1. Upload actual image to Cloudinary using unsigned preset
       const downloadUrl = await uploadImageToCloudinary(selectedFile, (progress) => {
         if (progressFill) progressFill.style.width = `${progress}%`;
       });
 
-      // 2. Compute discount percentage
       let discountPct = 0;
       if (origPrice > discPrice) {
         discountPct = Math.round(((origPrice - discPrice) / origPrice) * 100);
       }
 
-      // 3. Save book payload to Firestore books/{bookId}
       const bookPayload = {
         bookId: bookId,
         title: title,
@@ -403,9 +376,6 @@ function setupAddBookForm() {
   });
 }
 
-/**
- * Open and Populate Edit Modal
- */
 function openEditModal(bookId) {
   const book = sellerBooks.find(b => b.id === bookId);
   if (!book) return;
@@ -440,9 +410,6 @@ function openEditModal(bookId) {
   openModal('edit-book-modal');
 }
 
-/**
- * Handle Edit Book Form Submit
- */
 function setupEditBookForm() {
   const form = document.getElementById('edit-book-form');
   if (!form) return;
@@ -484,7 +451,6 @@ function setupEditBookForm() {
     };
 
     try {
-      // If user selected a replacement image, upload to Cloudinary first
       if (editSelectedFile) {
         const newUrl = await uploadImageToCloudinary(editSelectedFile);
         updatePayload.imageUrl = newUrl;
@@ -505,9 +471,6 @@ function setupEditBookForm() {
   });
 }
 
-/**
- * Delete Book Listing
- */
 async function deleteBookListing(bookId) {
   if (!confirm("Are you sure you want to delete this book listing? This action cannot be undone.")) {
     return;
@@ -521,11 +484,6 @@ async function deleteBookListing(bookId) {
   } catch (error) {
     showToast("Failed to delete book: " + error.message, "error");
   }
-}
-
-function escapeHTML(str) {
-  if (!str) return '';
-  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 window.openEditModal = openEditModal;

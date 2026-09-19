@@ -41,7 +41,6 @@ async function loadBookDetails(bookId) {
 
     currentBook = { id: doc.id, ...doc.data() };
 
-    // Check wishlist state
     if (auth.currentUser) {
       const wishDoc = await db.collection('users').doc(auth.currentUser.uid).collection('wishlist').doc(bookId).get();
       isCurrentBookWishlisted = wishDoc.exists;
@@ -69,7 +68,6 @@ function renderBookDetails() {
 
   container.innerHTML = `
     <div class="book-details-layout">
-      <!-- Gallery Column -->
       <div class="book-details-gallery">
         <img src="${currentBook.imageUrl || 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=600&auto=format&fit=crop&q=80'}" 
              alt="${escapeHTML(currentBook.title)}" 
@@ -77,13 +75,11 @@ function renderBookDetails() {
              onerror="this.src='https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=600&auto=format&fit=crop&q=80'">
       </div>
 
-      <!-- Info Column -->
       <div class="book-details-info">
         <span class="book-details-category">${escapeHTML(currentBook.category || 'General')}</span>
         <h1 class="book-details-title heading-academic">${escapeHTML(currentBook.title)}</h1>
         <p class="book-details-author">Author / Faculty: <strong>${escapeHTML(currentBook.author || 'Academic Faculty')}</strong></p>
 
-        <!-- Pricing Box -->
         <div class="book-details-pricing-box">
           <div>
             <div class="meta-label">Marketplace Price</div>
@@ -98,7 +94,6 @@ function renderBookDetails() {
           </span>
         </div>
 
-        <!-- Meta Details Table -->
         <div class="details-meta-list">
           <div class="meta-item">
             <span class="meta-label">Seller</span>
@@ -118,7 +113,6 @@ function renderBookDetails() {
           </div>
         </div>
 
-        <!-- Description -->
         <div class="book-details-desc">
           <h3 class="details-subtitle">Book Overview & Condition</h3>
           <p class="details-text">${escapeHTML(currentBook.description || 'No detailed description provided by the seller.')}</p>
@@ -131,7 +125,6 @@ function renderBookDetails() {
           </div>
         ` : ''}
 
-        <!-- Actions -->
         <div class="book-details-actions">
           <button onclick="toggleDetailsWishlist()" id="details-wish-btn" class="btn btn-outline" style="flex:1;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="${isCurrentBookWishlisted ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" class="${isCurrentBookWishlisted ? 'text-danger' : ''}">
@@ -166,7 +159,8 @@ function showErrorState(msg) {
 
 async function toggleDetailsWishlist() {
   if (!auth.currentUser) {
-    showToast("Please sign in with Google to add books to your wishlist.", "warning");
+    showToast("Please sign in to add books to your wishlist.", "warning");
+    openGlobalAuthModal('signup');
     return;
   }
 
@@ -203,7 +197,8 @@ async function toggleDetailsWishlist() {
 
 function initiateBuyNowFromDetails() {
   if (!auth.currentUser) {
-    showToast("Please sign in with Google to place an order.", "warning");
+    showToast("Please sign in to place an order.", "warning");
+    openGlobalAuthModal('signup');
     return;
   }
 
@@ -329,11 +324,6 @@ function setupOrderForm() {
       }
     });
   }
-}
-
-function escapeHTML(str) {
-  if (!str) return '';
-  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 window.toggleDetailsWishlist = toggleDetailsWishlist;

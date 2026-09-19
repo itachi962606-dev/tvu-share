@@ -7,7 +7,6 @@
  * 4. User Question Paper submissions saved with status: "pending" for Admin review.
  */
 
-// State
 let allSyllabuses = [];
 let approvedQuestionPapers = [];
 let filteredSyllabuses = [];
@@ -15,7 +14,6 @@ let filteredQuestionPapers = [];
 let selectedQpDepartment = 'All';
 let currentActiveTab = 'syllabus';
 
-// Department Icon Map
 const DEPT_ICONS = {
   'Computer Science': '💻',
   'Mathematics': '📐',
@@ -40,7 +38,6 @@ function getDeptIcon(deptName = '') {
   return '📚';
 }
 
-// Fallback seed data for immediate testing if Firestore has no records
 const DEFAULT_SYLLABUS_SEEDS = [
   {
     id: 'syl_cs_cbcs',
@@ -141,7 +138,6 @@ const DEFAULT_APPROVED_QP_SEEDS = [
   }
 ];
 
-// Initialize on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
   initSyllabusPortal();
 });
@@ -153,9 +149,6 @@ async function initSyllabusPortal() {
   ]);
 }
 
-/**
- * Tab Switching: 📚 Download Syllabus vs 📝 Previous Year Question Papers
- */
 function switchResourceTab(tabName) {
   currentActiveTab = tabName;
 
@@ -189,10 +182,6 @@ function switchResourceTab(tabName) {
   }
 }
 
-// =========================================================================
-// SECTION 1: DOWNLOAD SYLLABUS (Department-based Only)
-// =========================================================================
-
 async function loadSyllabuses() {
   if (!window.isFirebaseConfigured || !window.isFirebaseConfigured()) {
     allSyllabuses = [...DEFAULT_SYLLABUS_SEEDS];
@@ -218,9 +207,7 @@ async function loadSyllabuses() {
 
     filteredSyllabuses = [...allSyllabuses];
     renderSyllabusGrid();
-
   } catch (error) {
-    console.warn('Firestore syllabuses error (using fallback defaults):', error);
     allSyllabuses = [...DEFAULT_SYLLABUS_SEEDS];
     filteredSyllabuses = [...allSyllabuses];
     renderSyllabusGrid();
@@ -316,10 +303,6 @@ function clearSyllabusSearch() {
   handleSyllabusSearch('');
 }
 
-// =========================================================================
-// SECTION 2: PREVIOUS YEAR QUESTION PAPERS (Approved & Active Only)
-// =========================================================================
-
 async function loadApprovedQuestionPapers() {
   if (!window.isFirebaseConfigured || !window.isFirebaseConfigured()) {
     approvedQuestionPapers = [...DEFAULT_APPROVED_QP_SEEDS];
@@ -328,7 +311,6 @@ async function loadApprovedQuestionPapers() {
   }
 
   try {
-    // Query ONLY approved & active question papers
     const snapshot = await db.collection('questionPapers')
       .where('status', '==', 'approved')
       .where('isActive', '==', true)
@@ -341,23 +323,16 @@ async function loadApprovedQuestionPapers() {
     });
 
     if (approvedQuestionPapers.length === 0) {
-      // If Firestore contains no approved papers yet, load defaults for initial viewing
       approvedQuestionPapers = [...DEFAULT_APPROVED_QP_SEEDS];
     }
 
     applyQpFiltersAndRender();
-
   } catch (error) {
-    console.warn('Firestore question papers fetch error (using fallback defaults):', error);
     approvedQuestionPapers = [...DEFAULT_APPROVED_QP_SEEDS];
     applyQpFiltersAndRender();
   }
 }
 
-/**
- * Dynamic Department Extraction:
- * Strictly extracts ONLY departments that contain APPROVED & ACTIVE question papers.
- */
 function renderDynamicQpDepartmentFilters() {
   const container = document.getElementById('qp-dept-pills-container');
   if (!container) return;
@@ -409,11 +384,9 @@ function applyQpFiltersAndRender(searchQuery) {
   const q = (searchQuery !== undefined ? searchQuery : (searchInput ? searchInput.value : '')).toLowerCase().trim();
 
   filteredQuestionPapers = approvedQuestionPapers.filter(paper => {
-    // 1. Department Filter
     const matchDept = (selectedQpDepartment === 'All') || (paper.department === selectedQpDepartment);
     if (!matchDept) return false;
 
-    // 2. Search Filter
     if (!q) return true;
     const sub = (paper.subjectName || '').toLowerCase();
     const code = (paper.subjectCode || '').toLowerCase();
@@ -491,10 +464,6 @@ function renderQpGrid() {
   }).join('');
 }
 
-// =========================================================================
-// PDF DOWNLOAD / ANDROID COMPATIBILITY HANDLER
-// =========================================================================
-
 function handlePdfDownload(e, url, fileName) {
   if (!url || url === '#' || url.startsWith('javascript:')) {
     e.preventDefault();
@@ -508,18 +477,14 @@ function handlePdfDownload(e, url, fileName) {
       window.open(url, '_blank');
     }
   } catch (err) {
-    console.warn("Download handler notice:", err);
+    console.warn("Download notice:", err);
   }
 }
 
-// =========================================================================
-// USER QUESTION PAPER SUBMISSION (Subject to Admin Review)
-// =========================================================================
-
 function openQuestionPaperSubmitModal() {
   if (!auth.currentUser) {
-    showToast("Please sign in with Google to submit question papers.", "info");
-    if (typeof loginWithGoogle === 'function') loginWithGoogle();
+    showToast("Please sign in to submit question papers.", "info");
+    openGlobalAuthModal('signup');
     return;
   }
   openModal('qp-submit-modal');
@@ -529,7 +494,7 @@ async function handleQuestionPaperSubmit(e) {
   e.preventDefault();
 
   if (!auth.currentUser) {
-    showToast("Please sign in with Google first.", "warning");
+    showToast("Please sign in first.", "warning");
     return;
   }
 
@@ -554,7 +519,6 @@ async function handleQuestionPaperSubmit(e) {
   try {
     const fileName = `${dept}_${subjectName}_${examYear}.pdf`.replace(/\s+/g, '_');
 
-    // Save with status: "pending" and isActive: false (requires admin approval)
     const payload = {
       department: dept,
       subjectName: subjectName,
@@ -575,14 +539,10 @@ async function handleQuestionPaperSubmit(e) {
     };
 
     await db.collection('questionPapers').add(payload);
-
-    // Explicit confirmation message as required
     showToast("Your question paper has been submitted for admin review.", "success");
     closeModal('qp-submit-modal');
     document.getElementById('qp-submit-form').reset();
-
   } catch (error) {
-    console.error("Submission failed:", error);
     showToast("Submission failed: " + error.message, "error");
   } finally {
     if (submitBtn) {
@@ -592,7 +552,6 @@ async function handleQuestionPaperSubmit(e) {
   }
 }
 
-// Window bindings
 window.switchResourceTab = switchResourceTab;
 window.handleSyllabusSearch = handleSyllabusSearch;
 window.handleQpSearch = handleQpSearch;

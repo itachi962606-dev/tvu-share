@@ -17,14 +17,14 @@
         <img src="../assets/tvu-logo.png" alt="TVU Logo" onerror="this.src='https://via.placeholder.com/36?text=TVU'">
         <div>
           <div class="admin-brand-title">TVU Portal</div>
-          <div class="admin-brand-sub">Academic Admin</div>
+          <div class="admin-brand-sub" style="font-size:0.75rem; color:var(--admin-accent);">Academic Admin</div>
         </div>
       </div>
 
       <nav class="admin-nav">
         <button class="admin-nav-item active" id="nav-btn-pending" onclick="showAdminSection('pending')">
           <span>🕒 Pending Reviews</span>
-          <span class="admin-nav-badge" id="nav-pending-badge" style="display:none;">0</span>
+          <span class="admin-nav-badge" id="nav-pending-badge" style="display:none; background:#dc2626; color:#fff; padding:0.1rem 0.5rem; border-radius:12px; font-size:0.75rem;">0</span>
         </button>
         <button class="admin-nav-item" id="nav-btn-approved" onclick="showAdminSection('approved')">
           <span>✅ Approved Papers</span>
@@ -37,12 +37,12 @@
         </button>
       </nav>
 
-      <div class="admin-user-info">
-        <div class="admin-user-details">
-          <div class="admin-user-name" id="admin-display-name">Administrator</div>
-          <div class="admin-user-role" id="admin-display-email">admin@tvu.edu</div>
+      <div style="padding:1.25rem; border-top:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:space-between;">
+        <div style="font-size:0.825rem;">
+          <div style="font-weight:700; color:#ffffff;" id="admin-display-name">Administrator</div>
+          <div style="color:#94a3b8; font-size:0.75rem;" id="admin-display-email">admin@tvu.edu</div>
         </div>
-        <button onclick="logoutAdmin()" class="btn-admin" style="background:rgba(255,255,255,0.1); color:#ffffff; padding:0.4rem 0.6rem;" title="Sign Out">
+        <button onclick="logoutAdmin()" class="btn-admin" style="background:rgba(255,255,255,0.1); color:#ffffff; padding:0.4rem 0.6rem; border:none; border-radius:6px; cursor:pointer;" title="Sign Out">
           🚪
         </button>
       </div>
@@ -50,11 +50,8 @@
 
     <!-- Main Content Area -->
     <div class="admin-main">
-      
-      <!-- Topbar -->
       <header class="admin-topbar">
         <h1 class="admin-page-title" id="admin-page-heading">Pending Question Paper Reviews</h1>
-        
         <div style="display:flex; gap:0.75rem; align-items:center;">
           <button class="btn-admin btn-preview" onclick="refreshDashboardData()">
             <span>🔄</span> Refresh
@@ -66,25 +63,24 @@
       </header>
 
       <div class="admin-content">
-        
         <!-- Stats Row -->
         <div class="admin-stats-grid">
           <div class="admin-stat-card">
-            <div class="admin-stat-icon stat-icon-pending">🕒</div>
+            <div style="width:48px; height:48px; border-radius:10px; background:#fef3c7; color:#d97706; display:flex; align-items:center; justify-content:center; font-size:1.5rem;">🕒</div>
             <div>
               <div class="admin-stat-val" id="stat-pending-count">0</div>
               <div class="admin-stat-label">Pending Reviews</div>
             </div>
           </div>
           <div class="admin-stat-card">
-            <div class="admin-stat-icon stat-icon-approved">✅</div>
+            <div style="width:48px; height:48px; border-radius:10px; background:#d1fae5; color:#047857; display:flex; align-items:center; justify-content:center; font-size:1.5rem;">✅</div>
             <div>
               <div class="admin-stat-val" id="stat-approved-count">0</div>
               <div class="admin-stat-label">Approved Question Papers</div>
             </div>
           </div>
           <div class="admin-stat-card">
-            <div class="admin-stat-icon stat-icon-syllabus">📚</div>
+            <div style="width:48px; height:48px; border-radius:10px; background:#dbeafe; color:#0f2744; display:flex; align-items:center; justify-content:center; font-size:1.5rem;">📚</div>
             <div>
               <div class="admin-stat-val" id="stat-syllabus-count">0</div>
               <div class="admin-stat-label">Department Syllabuses</div>
@@ -92,7 +88,7 @@
           </div>
         </div>
 
-        <!-- SECTION 1: PENDING QUESTION PAPERS -->
+        <!-- SECTION 1: PENDING PAPERS -->
         <section id="section-pending">
           <div class="admin-card">
             <div class="admin-card-header">
@@ -106,25 +102,22 @@
                     <th>Department</th>
                     <th>Exam Year</th>
                     <th>Submitted By</th>
-                    <th>Date</th>
                     <th>Document</th>
                     <th>Review Action</th>
                   </tr>
                 </thead>
-                <tbody id="pending-papers-tbody">
-                  <!-- Injected via js/admin.js -->
-                </tbody>
+                <tbody id="pending-papers-tbody"></tbody>
               </table>
               <div id="pending-empty-state" style="text-align:center; padding:3rem; color:var(--admin-muted); display:none;">
                 <div style="font-size:2.5rem; margin-bottom:0.5rem;">🎉</div>
                 <div style="font-weight:700; font-size:1.1rem; color:var(--admin-primary);">No Pending Question Papers</div>
-                <p>All student submissions have been reviewed and moderated.</p>
+                <p>All student submissions have been reviewed.</p>
               </div>
             </div>
           </div>
         </section>
 
-        <!-- SECTION 2: APPROVED QUESTION PAPERS -->
+        <!-- SECTION 2: APPROVED PAPERS -->
         <section id="section-approved" style="display:none;">
           <div class="admin-card">
             <div class="admin-card-header">
@@ -137,20 +130,17 @@
                     <th>Subject Name</th>
                     <th>Department</th>
                     <th>Exam Year</th>
-                    <th>Status</th>
                     <th>Document</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
-                <tbody id="approved-papers-tbody">
-                  <!-- Injected via js/admin.js -->
-                </tbody>
+                <tbody id="approved-papers-tbody"></tbody>
               </table>
             </div>
           </div>
         </section>
 
-        <!-- SECTION 3: REJECTED SUBMISSIONS -->
+        <!-- SECTION 3: REJECTED PAPERS -->
         <section id="section-rejected" style="display:none;">
           <div class="admin-card">
             <div class="admin-card-header">
@@ -166,22 +156,17 @@
                     <th>Actions</th>
                   </tr>
                 </thead>
-                <tbody id="rejected-papers-tbody">
-                  <!-- Injected via js/admin.js -->
-                </tbody>
+                <tbody id="rejected-papers-tbody"></tbody>
               </table>
             </div>
           </div>
         </section>
 
-        <!-- SECTION 4: SYLLABUS MANAGEMENT -->
+        <!-- SECTION 4: SYLLABUSES -->
         <section id="section-syllabuses" style="display:none;">
           <div class="admin-card">
             <div class="admin-card-header">
               <h2 class="admin-card-title">Department Complete Regulation Syllabuses</h2>
-              <button class="btn-admin btn-approve" onclick="openAddSyllabusModal()">
-                <span>+</span> Upload Department Syllabus
-              </button>
             </div>
             <div class="admin-table-wrap">
               <table class="admin-table">
@@ -194,9 +179,7 @@
                     <th>Actions</th>
                   </tr>
                 </thead>
-                <tbody id="syllabuses-tbody">
-                  <!-- Injected via js/admin.js -->
-                </tbody>
+                <tbody id="syllabuses-tbody"></tbody>
               </table>
             </div>
           </div>
@@ -207,69 +190,24 @@
   </div>
 
   <!-- Rejection Modal -->
-  <div class="admin-modal-backdrop" id="admin-reject-modal">
-    <div class="admin-modal">
-      <div class="admin-modal-header">
+  <div class="modal-backdrop" id="admin-reject-modal" style="display:none;">
+    <div class="modal-dialog" style="max-width:480px;">
+      <div class="modal-header">
         <h3 style="font-size:1.1rem; font-weight:700; color:var(--admin-danger);">Reject Question Paper</h3>
         <button onclick="closeRejectModal()" style="background:none; border:none; font-size:1.4rem; cursor:pointer;">&times;</button>
       </div>
-      <div class="admin-modal-body">
-        <p style="font-size:0.9rem; color:var(--admin-text); margin-bottom:1rem;">
+      <div class="modal-body">
+        <p style="font-size:0.9rem; margin-bottom:1rem;">
           Rejecting: <strong id="reject-subject-title">Subject</strong>
         </p>
         <div style="margin-bottom:1.25rem;">
-          <label style="display:block; font-size:0.85rem; font-weight:700; margin-bottom:0.4rem; color:var(--admin-muted);">Reason for Rejection (Optional)</label>
-          <textarea id="reject-reason-input" rows="3" style="width:100%; border:1px solid var(--admin-border); border-radius:6px; padding:0.75rem; font-size:0.9rem;" placeholder="e.g. Blurry scan, incorrect exam year, not official TVU paper..."></textarea>
+          <label style="display:block; font-size:0.85rem; font-weight:700; margin-bottom:0.4rem;">Reason for Rejection</label>
+          <textarea id="reject-reason-input" rows="3" class="form-control" placeholder="e.g. Blurry scan, incorrect exam year..."></textarea>
         </div>
         <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
-          <button class="btn-admin btn-preview" onclick="closeRejectModal()">Cancel</button>
-          <button class="btn-admin btn-reject" onclick="confirmRejectQuestionPaper()">Confirm Rejection</button>
+          <button class="btn btn-outline" onclick="closeRejectModal()">Cancel</button>
+          <button class="btn btn-danger" onclick="confirmRejectQuestionPaper()">Confirm Rejection</button>
         </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Add / Edit Syllabus Modal -->
-  <div class="admin-modal-backdrop" id="admin-syllabus-modal">
-    <div class="admin-modal">
-      <div class="admin-modal-header">
-        <h3 id="syllabus-modal-title" style="font-size:1.1rem; font-weight:700; color:var(--admin-primary);">Upload Department Syllabus PDF</h3>
-        <button onclick="closeSyllabusModal()" style="background:none; border:none; font-size:1.4rem; cursor:pointer;">&times;</button>
-      </div>
-      <div class="admin-modal-body">
-        <form id="admin-syllabus-form" onsubmit="handleAdminSyllabusSubmit(event)">
-          
-          <div style="margin-bottom:1rem;">
-            <label style="display:block; font-size:0.85rem; font-weight:700; margin-bottom:0.35rem;">Department Name <span style="color:red;">*</span></label>
-            <input type="text" id="admin-syl-dept" required placeholder="e.g. B.Sc Computer Science, B.Com General, M.Sc Mathematics" style="width:100%; padding:0.65rem; border:1px solid var(--admin-border); border-radius:6px;">
-          </div>
-
-          <div style="margin-bottom:1rem;">
-            <label style="display:block; font-size:0.85rem; font-weight:700; margin-bottom:0.35rem;">Syllabus Title</label>
-            <input type="text" id="admin-syl-title" placeholder="e.g. Complete CBCS Regulation Syllabus (All Semesters)" style="width:100%; padding:0.65rem; border:1px solid var(--admin-border); border-radius:6px;">
-          </div>
-
-          <div style="margin-bottom:1rem;">
-            <label style="display:block; font-size:0.85rem; font-weight:700; margin-bottom:0.35rem;">Regulation / Batch</label>
-            <input type="text" id="admin-syl-regulation" placeholder="e.g. 2023 - 2026 CBCS Regulation" style="width:100%; padding:0.65rem; border:1px solid var(--admin-border); border-radius:6px;">
-          </div>
-
-          <div style="margin-bottom:1rem;">
-            <label style="display:block; font-size:0.85rem; font-weight:700; margin-bottom:0.35rem;">Complete Syllabus PDF URL <span style="color:red;">*</span></label>
-            <input type="url" id="admin-syl-pdf" required placeholder="https://.../complete_syllabus.pdf" style="width:100%; padding:0.65rem; border:1px solid var(--admin-border); border-radius:6px;">
-          </div>
-
-          <div style="margin-bottom:1.5rem;">
-            <label style="display:block; font-size:0.85rem; font-weight:700; margin-bottom:0.35rem;">Curriculum Description / Subjects Covered</label>
-            <textarea id="admin-syl-desc" rows="3" placeholder="Summary of subjects across all 6 semesters..." style="width:100%; padding:0.65rem; border:1px solid var(--admin-border); border-radius:6px;"></textarea>
-          </div>
-
-          <div style="display:flex; justify-content:flex-end; gap:0.5rem; border-top:1px solid var(--admin-border); padding-top:1rem;">
-            <button type="button" class="btn-admin btn-preview" onclick="closeSyllabusModal()">Cancel</button>
-            <button type="submit" class="btn-admin btn-approve">Save & Publish Syllabus</button>
-          </div>
-
-        </form>
       </div>
     </div>
   </div>
@@ -283,9 +221,7 @@
   <script src="../js/firebase-config.js"></script>
   <script src="js/admin-auth.js"></script>
   <script src="js/admin.js"></script>
-
   <script>
-    // Enforce Admin Authentication on page load
     document.addEventListener('DOMContentLoaded', () => {
       requireAdminAuth();
     });

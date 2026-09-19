@@ -7,12 +7,13 @@
   <meta name="description" content="View your saved university textbooks and study materials.">
   <link rel="icon" type="image/png" href="assets/tvu-logo.png">
 
+  <!-- Stylesheets -->
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/responsive.css">
 </head>
 <body>
 
-  <!-- Dynamic Header -->
+  <!-- Dynamic Universal Header Container -->
   <div id="site-header-container"></div>
 
   <!-- Page Header -->
@@ -22,7 +23,7 @@
         My Saved Books & Wishlist
       </h1>
       <p id="wishlist-count" style="color:var(--text-muted); font-size:0.95rem;">
-        Synchronized with your university Google account.
+        Synchronized with your university account.
       </p>
     </div>
   </div>
@@ -30,7 +31,7 @@
   <!-- Main Content -->
   <main class="container" style="margin-top:2.5rem; flex:1;">
     <div id="wishlist-grid" class="books-grid">
-      <!-- Injected by wishlist.js -->
+      <!-- Injected dynamically by wishlist.js -->
     </div>
   </main>
 

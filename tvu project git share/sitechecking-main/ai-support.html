@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NOVA AI Support 🦢 | TVU Books & Materials</title>
-  <meta name="description" content="Meet NOVA, your official AI assistant for TVU Books & Materials at Thiruvalluvar University. Get smart assistance in English, Tamil, and Tanglish for book searches, orders, wishlist, and seller portal.">
+  <meta name="description" content="Meet NOVA, your official AI assistant for TVU Books & Materials at Thiruvalluvar University. Get smart assistance in English, Tamil, and Tanglish.">
   <link rel="icon" type="image/png" href="assets/tvu-logo.png">
 
   <!-- Core Stylesheets -->
@@ -14,7 +14,7 @@
 </head>
 <body>
 
-  <!-- Dynamic Header Container -->
+  <!-- Dynamic Universal Header Container -->
   <div id="site-header-container"></div>
 
   <!-- Page Breadcrumbs Banner -->
@@ -90,12 +90,6 @@
           </button>
           <button class="ai-chip" onclick="handleChipClick('How do I sell a book on TVU?')">
             <span>💼</span> How do I sell a book?
-          </button>
-          <button class="ai-chip" onclick="handleChipClick('En listed books ena?')">
-            <span>📋</span> En listed books ena?
-          </button>
-          <button class="ai-chip" onclick="handleChipClick('Stock epdi update panradhu?')">
-            <span>⚡</span> Stock update epdi?
           </button>
         </div>
       </div>
@@ -210,7 +204,7 @@
         <div class="footer-brand">
           <h3>TVU Books & Materials</h3>
           <p style="max-width:380px; line-height:1.6;">
-            The official student academic marketplace of Thiruvalluvar University. Promoting textbook reuse, affordable study materials, and seamless student exchange.
+            The official student academic marketplace of Thiruvalluvar University.
           </p>
         </div>
         <div class="footer-col">
@@ -244,13 +238,9 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
-  <!-- EmailJS SDK -->
-  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
-
   <!-- App Core Modules -->
   <script src="js/firebase-config.js"></script>
   <script src="js/notifications.js"></script>
-  <script src="js/email-service.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/ai-support.js"></script>
 </body>
